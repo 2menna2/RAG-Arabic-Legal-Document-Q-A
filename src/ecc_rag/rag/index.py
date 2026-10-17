@@ -201,6 +201,8 @@ def load_index(
 
 
 DETERMINISTIC_HASH_SEED = "0"
+# manifest fields that are a pure function of inputs + config (identical on every machine)
+INDEX_IDENTITY_KEYS = ("collection", "corpus_hash", "chunks_hash", "n_points", "dim", "chunking", "embedder")
 
 
 def _ensure_fixed_hash_seed() -> None:
@@ -223,10 +225,15 @@ def main() -> None:
     parser.add_argument("--chunks", type=Path, default=Path("data/processed/chunks.jsonl"))
     parser.add_argument("--articles", type=Path, default=Path("data/processed/articles.jsonl"))
     parser.add_argument("--index-dir", type=Path, default=Path("data/index"))
+    parser.add_argument("--identity", type=Path, default=Path("reports/index_identity.json"), help="deterministic index identity (in Git)")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+    parser_identity = args.identity
     args.index_dir.mkdir(parents=True, exist_ok=True)
     m = build_index(args.chunks, args.articles, args.index_dir, load_rag_config())
+    identity = {k: m[k] for k in INDEX_IDENTITY_KEYS}
+    parser_identity.parent.mkdir(parents=True, exist_ok=True)
+    parser_identity.write_text(json.dumps(identity, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps({k: m[k] for k in ("collection", "n_points", "dim", "corpus_hash")}, indent=2))
 
 

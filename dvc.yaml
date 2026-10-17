@@ -61,7 +61,12 @@ stages:
           - chunking
           - embedding
     outs:
+      # float model state: bytes differ across CPUs (OpenBLAS kernels) — CI checks its identity + behaviour instead
       - data/index
+    metrics:
+      # deterministic identity of the index (collection, hashes, sizes, embedder params) — committed to Git
+      - reports/index_identity.json:
+          cache: false
 
   reference_baseline:
     cmd: python baselines/reference_pipeline/run_reference.py data/raw/Law.pdf data/baselines/reference_civil_code_ready.json

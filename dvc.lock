@@ -119,8 +119,8 @@ stages:
       size: 9771
     - path: src/ecc_rag/rag/index.py
       hash: md5
-      md5: 58d7e17e3335c2d1beaaabff5e917acf
-      size: 9250
+      md5: 387899a4cad2a04301076ce87a6db5e8
+      size: 9865
     - path: src/ecc_rag/rag/vector_store.py
       hash: md5
       md5: 144eae959e3ebde6ce94a458202adf67
@@ -153,6 +153,10 @@ stages:
       md5: acdc5fdc88779847d76b439eb38c217e.dir
       size: 75068719
       nfiles: 5
+    - path: reports/index_identity.json
+      hash: md5
+      md5: c7882eb86bd06af01efee77bbddf3a6c
+      size: 686
   reference_baseline:
     cmd: python baselines/reference_pipeline/run_reference.py data/raw/Law.pdf 
       data/baselines/reference_civil_code_ready.json
@@ -266,8 +270,8 @@ stages:
       size: 2477014
     - path: src/ecc_rag
       hash: md5
-      md5: 5514495c04a522ef78cafd232fa366c5.dir
-      size: 216488
+      md5: a1b579ed47220507bf93e62194a4be87.dir
+      size: 217103
       nfiles: 37
     params:
       configs/rag.yaml:
@@ -302,13 +306,13 @@ stages:
     outs:
     - path: reports/eval_summary.json
       hash: md5
-      md5: 2ed98355fcf75741d90c036ab2ed6fa4
+      md5: 8ecb45ae9047bc362509c4721c388749
       size: 1486
     - path: reports/gates_eval.json
       hash: md5
-      md5: a99aad16de60e9135f52c9b5b4611657
+      md5: 99644334f592de906cbf026e09234078
       size: 58155
     - path: reports/retrieval_eval.json
       hash: md5
-      md5: d52fb2fdbe4b2134e48bd5726fda45c8
-      size: 132138
+      md5: cc3bd87257c0ecd3b6db278b9101972f
+      size: 132141

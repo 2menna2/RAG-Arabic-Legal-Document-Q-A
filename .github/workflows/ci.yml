@@ -118,7 +118,8 @@ jobs:
           uv run dvc repro index
           # DVC skips `validate` when articles.jsonl is byte-identical to the last validated one; run it anyway
           uv run dvc repro --force --single-item validate
-          git diff --exit-code dvc.lock || (echo "::error::dvc.lock changed: pipeline outputs are not reproducible from the committed state (run 'dvc repro' on Linux/with LF line endings and commit dvc.lock)" && exit 1)
+          # deterministic outputs must be byte-identical; the float vector index is checked by identity + behaviour
+          uv run python scripts/check_reproducibility.py
       - name: Integration + e2e tests (real corpus)
         if: steps.corpus.outputs.source != 'none'
         run: uv run pytest tests/integration tests/e2e --cov --cov-report=term --cov-fail-under=0

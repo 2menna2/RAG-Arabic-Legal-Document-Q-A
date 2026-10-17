@@ -1,0 +1,30 @@
+{
+  "collection": "ecc_594c9ef8528d",
+  "corpus_hash": "09b6949d3b3aee1b175ac7ce3151331f9515d0929ea71f766ece3a26b6b7cd72",
+  "chunks_hash": "9988b92c640c7fa37dafb5ffedfbef954a6a3791d09bd217eabc06fe438e9f62",
+  "n_points": 1149,
+  "dim": 256,
+  "chunking": {
+    "strategy": "article_ctx",
+    "params": {
+      "include_english": true,
+      "min_chars_to_split": 600
+    }
+  },
+  "embedder": {
+    "name": "lsa",
+    "model": "char-tfidf+truncated-svd",
+    "version": "sklearn-1.9.1",
+    "dim": 256,
+    "params": {
+      "n_components": 256,
+      "ngram_range": [
+        2,
+        5
+      ],
+      "min_df": 2,
+      "seed": 42
+    },
+    "params_hash": "9849723d26855075"
+  }
+}

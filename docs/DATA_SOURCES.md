@@ -35,8 +35,20 @@ quality_flags, content_hash` — enforced by `src/ecc_rag/data_pipeline/schema.p
    all outputs with identical hashes). If the PDF is ever removed from Git again, re-add it with `dvc add
    data/raw/Law.pdf`; CI then pulls it from the remote (see docs/CI_CD.md).
 
-Line endings: `.gitattributes` forces LF and every writer uses `newline="\n"`, so outputs and `dvc.lock` are
-byte-identical on Windows and Linux (DVC hashes raw bytes).
+Reproducibility across platforms (measured 2026-10-17):
+
+| output | same machine, fresh clone | GitHub runner ↔ build env | Windows ↔ Linux |
+|---|---|---|---|
+| `rows.jsonl`, `articles.jsonl`, `chunks.jsonl`, reports | byte-identical | byte-identical | byte-identical (`.gitattributes` LF + `newline="\n"`) |
+| `reports/index_identity.json` (collection, hashes, points, dim, embedder params) | identical | identical | identical |
+| `data/index` (`lsa.joblib`, Qdrant SQLite) | byte-identical (`PYTHONHASHSEED=0`, fresh SQLite) | **differs** (same size) | **differs** |
+
+The vector index holds floating-point model state; OpenBLAS selects CPU-specific kernels at run time, so its last
+bits differ between machines with identical inputs (observed on GitHub run #11 and on Windows). It is therefore
+verified by identity and behaviour, not bytes: `scripts/check_reproducibility.py` (CI) requires every other
+`dvc.lock` entry to be byte-identical and the rebuilt index identity to equal `reports/index_identity.json`; the
+quality gate then checks retrieval metrics against `reports/baseline/`. A changed `data/index` hash in `dvc.lock`
+after a local `dvc repro` is expected and harmless.
 
 ## Evaluation data (`data/evaluation/golden_v1.yaml`)
 
