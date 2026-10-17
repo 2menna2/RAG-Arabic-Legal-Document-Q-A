@@ -176,7 +176,7 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Vulnerability scan (fails on fixable CRITICAL/HIGH)
         if: env.HAS_CORPUS == 'true'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ecc-rag-api:${{ github.sha }}
           severity: CRITICAL,HIGH
