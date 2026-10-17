@@ -2,6 +2,11 @@
 
 Metrics (all computed from this run's outputs):
 
+Rows that ended in ``error`` (provider unavailable / rate-limited / timeout) are NOT quality judgements:
+they are counted in ``n_errors``/``error_rate`` and excluded from every quality metric below. A metric whose
+denominator is empty is ``null`` ("not measurable in this run"), never 0. A run with errors is marked
+``complete: false`` and the quality gate rejects it when LLM floors are configured.
+
 * ``outcome_accuracy``          status == expected behaviour (acceptable alternatives allowed)
 * ``answered_rate``             share of answerable questions that end ``answered``
 * ``abstention_recall``         share of non-answerable questions NOT answered
@@ -26,6 +31,7 @@ import logging
 import random
 import statistics
 import time
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -54,7 +60,17 @@ System answer:
 For each key point answer 1 if the system answer conveys it correctly, else 0. Return JSON: {{"scores": [0 or 1, ...]}}"""
 
 
-def run(split: str, limit: int | None, judge: bool, ragas: bool, sample_n: int, seed: int) -> dict[str, Any]:
+def run(
+    split: str,
+    limit: int | None,
+    judge: bool,
+    ragas: bool,
+    sample_n: int,
+    seed: int,
+    min_interval_s: float = 0.0,
+    max_retries: int | None = None,
+    max_retry_wait_s: float | None = None,
+) -> dict[str, Any]:
     if get_settings().gemini_api_key is None:
         raise SystemExit("GEMINI_API_KEY is not set — LLM evaluation cannot run (nothing is faked).")
     cfg = load_rag_config()
@@ -64,6 +80,13 @@ def run(split: str, limit: int | None, judge: bool, ragas: bool, sample_n: int, 
     llm = make_llm_client()
     if llm is None:
         raise SystemExit("LLM_PROVIDER=none — set LLM_PROVIDER=gemini to run the LLM evaluation.")
+    # batch runs may wait longer for rate limits than an interactive API request would
+    if hasattr(llm, "min_interval_s"):
+        llm.min_interval_s = min_interval_s
+    if max_retries is not None and hasattr(llm, "max_retries"):
+        llm.max_retries = max_retries
+    if max_retry_wait_s is not None and hasattr(llm, "max_retry_wait_s"):
+        llm.max_retry_wait_s = max_retry_wait_s
     pipe.llm = llm
     rows = []
     for it in items:
@@ -111,6 +134,8 @@ def run(split: str, limit: int | None, judge: bool, ragas: bool, sample_n: int, 
         "dataset_hash": dataset_hash(),
         "split": split,
         "llm_model": llm.model,
+        "limit": limit,
+        "complete": metrics["n_errors"] == 0 and limit is None,
         "prompt_version": cfg["generation"]["prompt_version"],
         "metrics": metrics,
         "rows": rows,
@@ -121,34 +146,44 @@ def run(split: str, limit: int | None, judge: bool, ragas: bool, sample_n: int, 
     return out
 
 
-def compute_metrics(rows: list[dict[str, Any]], items: list[GoldenItem]) -> dict[str, float]:
-    ans = [r for r in rows if r["expected_behavior"] == "answer"]
-    neg = [r for r in rows if r["expected_behavior"] != "answer"]
+def _ratio(num: float, den: int) -> float | None:
+    return round(num / den, 4) if den else None
+
+
+def compute_metrics(rows: list[dict[str, Any]], items: list[GoldenItem]) -> dict[str, Any]:
+    errors = [r for r in rows if r["status"] == "error"]
+    scored = [r for r in rows if r["status"] != "error"]
+    ans = [r for r in scored if r["expected_behavior"] == "answer"]
+    neg = [r for r in scored if r["expected_behavior"] != "answer"]
     answered = [r for r in ans if r["status"] == "answered"]
     exp_recall = [
         len(set(r["cited_articles"]) & set(r["expected_articles"])) / len(r["expected_articles"])
         for r in answered
         if r["expected_articles"]
     ]
-    claims = sum(r["n_claims"] for r in answered) or 1
+    claims = sum(r["n_claims"] for r in answered)
     weak = sum(sum(1 for w in r["citation_warnings"] if w.startswith("weak_support")) for r in answered)
-    lat = sorted(r["latency_s"] for r in rows)
-    m = {
+    lat = sorted(r["latency_s"] for r in scored)
+    return {
         "n": len(rows),
-        "outcome_accuracy": round(sum(r["correct_outcome"] for r in rows) / max(1, len(rows)), 4),
-        "answered_rate": round(len(answered) / max(1, len(ans)), 4),
-        "abstention_recall": round(sum(r["status"] != "answered" for r in neg) / max(1, len(neg)), 4),
-        "expected_article_cited": round(statistics.fmean(exp_recall), 4) if exp_recall else 0.0,
-        "first_pass_validation_rate": round(sum(r["first_pass_valid"] for r in answered) / max(1, len(answered)), 4),
-        "citation_failure_rate": round(sum(r["reason"] == "citation_validation_failed" for r in ans) / max(1, len(ans)), 4),
-        "error_rate": round(sum(r["status"] == "error" for r in rows) / max(1, len(rows)), 4),
-        "heuristic_weak_support_rate": round(weak / claims, 4),
-        "latency_p50_s": lat[len(lat) // 2] if lat else 0.0,
-        "latency_p95_s": lat[min(len(lat) - 1, int(0.95 * len(lat)))] if lat else 0.0,
+        "n_scored": len(scored),
+        "n_errors": len(errors),
+        "error_rate": _ratio(len(errors), len(rows)),
+        "error_reasons": dict(sorted(Counter(r["reason"] for r in errors).items())),
+        "n_answerable_scored": len(ans),
+        "n_negative_scored": len(neg),
+        "outcome_accuracy": _ratio(sum(r["correct_outcome"] for r in scored), len(scored)),
+        "answered_rate": _ratio(len(answered), len(ans)),
+        "abstention_recall": _ratio(sum(r["status"] != "answered" for r in neg), len(neg)),
+        "expected_article_cited": round(statistics.fmean(exp_recall), 4) if exp_recall else None,
+        "first_pass_validation_rate": _ratio(sum(r["first_pass_valid"] for r in answered), len(answered)),
+        "citation_failure_rate": _ratio(sum(r["reason"] == "citation_validation_failed" for r in ans), len(ans)),
+        "heuristic_weak_support_rate": _ratio(weak, claims),
+        "latency_p50_s": lat[len(lat) // 2] if lat else None,
+        "latency_p95_s": lat[min(len(lat) - 1, int(0.95 * len(lat)))] if lat else None,
         "prompt_tokens_total": sum(r["prompt_tokens"] or 0 for r in rows),
         "output_tokens_total": sum(r["output_tokens"] or 0 for r in rows),
     }
-    return m
 
 
 def judge_key_points(llm: Any, rows: list[dict[str, Any]]) -> float:
@@ -238,10 +273,30 @@ def main() -> None:
     p.add_argument("--ragas", action="store_true", help="add official RAGAS metrics (pip install .[ragas])")
     p.add_argument("--review-sample", type=int, default=40)
     p.add_argument("--seed", type=int, default=13)
+    p.add_argument("--min-interval", type=float, default=0.0, help="seconds between LLM calls (pace free-tier rate limits, e.g. 7)")
+    p.add_argument("--max-retries", type=int, default=5, help="retries per LLM call on 429/5xx (batch default 5)")
+    p.add_argument("--max-retry-wait", type=float, default=90.0, help="longest provider retry-after (s) to honour before giving up")
     args = p.parse_args()
     logging.basicConfig(level=logging.INFO)
-    out = run(args.split, args.limit, args.judge, args.ragas, args.review_sample, args.seed)
+    for noisy in ("httpx", "google_genai", "google_genai.models"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+    out = run(
+        args.split,
+        args.limit,
+        args.judge,
+        args.ragas,
+        args.review_sample,
+        args.seed,
+        min_interval_s=args.min_interval,
+        max_retries=args.max_retries,
+        max_retry_wait_s=args.max_retry_wait,
+    )
     print(json.dumps(out["metrics"], ensure_ascii=False, indent=2))
+    if not out["complete"]:
+        print(
+            f"NOTE: incomplete run (errors={out['metrics']['n_errors']}, limit={out['limit']}) — "
+            "fine for a smoke check, not valid as a baseline or for the quality gate."
+        )
 
 
 if __name__ == "__main__":

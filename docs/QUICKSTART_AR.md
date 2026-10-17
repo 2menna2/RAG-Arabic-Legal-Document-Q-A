@@ -122,12 +122,17 @@ uv run uvicorn ecc_rag.api.main:app --host 127.0.0.1 --port 8000
 ```bash
 uv run python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db   # retrieval + طبقة القرار
 uv run python -m ecc_rag.evaluation.quality_gate                                # لازم يطبع QUALITY GATE: PASSED
-uv run python -m ecc_rag.evaluation.rag_eval --split test                       # تقييم إجابات Gemini فعليًا
+uv run python -m ecc_rag.evaluation.rag_eval --split test --min-interval 7      # تقييم إجابات Gemini فعليًا
 uv run mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000            # http://127.0.0.1:5000
 ```
 
 `rag_eval` هو التقييم اللي ماتعملش لعدم وجود مفتاح. لما تشغّله:
-- خلي بالك من حدود الخطة المجانية (فيه 136 سؤال في الـ test split، وللتجربة الأول ضيف `--limit 20`).
+- **اقفل السيرفر الأول** (Ctrl+C): الفهرس المحلي بيفتحه برنامج واحد بس في نفس الوقت.
+- الخطة المجانية ليها حد طلبات في الدقيقة. `--min-interval 7` بيخلي فيه 7 ثواني بين الطلبات، وبعد كده لو
+  جوجل رجّعت 429، الكود بيستنى المدة اللي جوجل طلبتها (لحد 90 ثانية) وبيعيد المحاولة.
+- فيه 136 سؤال في الـ test split، يعني حوالي 20–30 دقيقة. للتجربة الأول ضيف `--limit 20`.
+- لو الرسالة الأخيرة قالت `incomplete run` (أخطاء أو `--limit`)، النتايج تنفع كمؤشر بس، ومينفعش تبقى baseline.
+  الأخطاء بتتحسب لوحدها في `n_errors` ومش بتدخل في مقاييس الجودة.
 - النتائج بتطلع في `reports/`.
 - بعدها حط الحدود الدنيا في `configs/quality_gates.yaml` تحت `llm_eval`.
 

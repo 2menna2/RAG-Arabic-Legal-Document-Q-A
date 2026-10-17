@@ -41,10 +41,12 @@ class Settings(BaseSettings):
     # --- LLM (Gemini)
     llm_provider: Literal["gemini", "none"] = Field("gemini", alias="LLM_PROVIDER")
     gemini_api_key: SecretStr | None = Field(None, alias="GEMINI_API_KEY")
-    gemini_model: str = Field("gemini-2.5-flash", alias="GEMINI_MODEL")
+    gemini_model: str = Field("gemini-3.8-flash", alias="GEMINI_MODEL")
     gemini_embedding_model: str = Field("gemini-embedding-001", alias="GEMINI_EMBEDDING_MODEL")
     llm_timeout_s: float = Field(30.0, alias="LLM_TIMEOUT_S")
     llm_max_retries: int = Field(2, alias="LLM_MAX_RETRIES", ge=0, le=5)
+    # longest wait honoured for a provider "retry after" hint (429); longer hints fail fast instead of blocking requests
+    llm_max_retry_wait_s: float = Field(8.0, alias="LLM_MAX_RETRY_WAIT_S", ge=0)
     llm_temperature: float = Field(0.0, alias="LLM_TEMPERATURE")
     llm_max_output_tokens: int = Field(2048, alias="LLM_MAX_OUTPUT_TOKENS")
 

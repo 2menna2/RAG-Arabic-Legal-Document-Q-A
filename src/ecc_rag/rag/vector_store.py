@@ -65,6 +65,11 @@ class QdrantStore:
         except VectorStoreError:
             raise
         except Exception as exc:
+            if "already accessed" in str(exc):
+                raise VectorStoreError(
+                    "embedded Qdrant index is locked by another process — stop the other process using it "
+                    "(e.g. the API server) or run a Qdrant server and set QDRANT_URL"
+                ) from exc
             raise VectorStoreError(f"cannot open Qdrant ({type(exc).__name__})") from exc
 
     def recreate(self, collection: str, dim: int) -> None:

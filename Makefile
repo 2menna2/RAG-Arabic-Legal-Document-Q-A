@@ -24,7 +24,7 @@ eval: index      ## offline evaluation (retrieval + decision layer) logged to ML
 	$(PY) -m ecc_rag.evaluation.run_eval --mlflow-uri $(MLFLOW_URI)
 
 eval-llm:        ## end-to-end evaluation with Gemini (needs GEMINI_API_KEY); add ARGS="--judge --ragas"
-	$(PY) -m ecc_rag.evaluation.rag_eval --split test $(ARGS)
+	$(PY) -m ecc_rag.evaluation.rag_eval --split test --min-interval 7 $(ARGS)
 
 benchmark:       ## retrieval benchmark (corpora × chunking × methods) logged to MLflow
 	dvc repro benchmark

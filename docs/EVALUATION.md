@@ -51,8 +51,16 @@ accuracy, balanced accuracy, per-class accuracy, **false-proceed rate** (negativ
 | judge_key_point_coverage | Gemini-as-judge share of key points conveyed | **LLM-judged**, not human |
 | ragas_faithfulness, ragas_answer_relevancy, ragas_llm_context_precision_with_reference, ragas_context_recall | official RAGAS 0.3.9 metrics | LLM-based library metrics |
 
-Status in this delivery: **not executed** (no network access to Gemini from the build environment). The RAGAS extra's
-import compatibility was verified (`ragas==0.3.9` requires `langchain-community<0.4`).
+Rows ending in `error` (provider unavailable / rate-limited / timeout) are excluded from the quality metrics and
+reported as `n_errors`, `error_rate`, `error_reasons`. A metric with an empty denominator is `null` (not measured),
+never `0`. A run is `complete` only with zero errors and no `--limit`; the quality gate rejects incomplete runs when
+LLM floors are configured. Free-tier pacing: `--min-interval 7`; 429 retry-after hints are honoured up to
+`--max-retry-wait` (default 90 s) in batch runs and `LLM_MAX_RETRY_WAIT_S` (default 8 s) in the API.
+
+Status: not executed in the build environment (no Gemini access). The project owner ran a 20-question smoke run on
+2026-10-17 with `gemini-3.8-flash`; it exposed free-tier 429s and the two metric defects fixed above, and is **not**
+a valid evaluation (incomplete, answerable-only items). The RAGAS extra's import compatibility was verified
+(`ragas==0.3.9` requires `langchain-community<0.4`).
 
 ## 5. Human review protocol
 

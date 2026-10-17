@@ -22,7 +22,7 @@ Copy `.env.example` → `.env` (never committed). Essential variables:
 |---|---|
 | `GEMINI_API_KEY` | **required** for `/api/v1/ask` (secret) |
 | `LLM_PROVIDER` | `gemini` (default) or `none` = retrieval-only deployment (`/ask` → 503, `/ready` → 200) |
-| `GEMINI_MODEL` | default `gemini-2.5-flash`; check availability for your key |
+| `GEMINI_MODEL` | default `gemini-3.8-flash` (`gemini-2.5-flash` returned 404 "no longer available to new users" on 2026-10-17); list the models your key can use with `client.models.list()` |
 | `LLM_TIMEOUT_S`, `LLM_MAX_RETRIES` | 30 s, 2 retries (only on 429/5xx/timeouts) |
 | `QDRANT_URL` / `QDRANT_API_KEY` | use a Qdrant server; unset = embedded index baked into the image |
 | `RATE_LIMIT_PER_MINUTE` | per client IP and per replica (default 30) |

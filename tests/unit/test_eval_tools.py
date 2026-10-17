@@ -44,11 +44,80 @@ def test_rag_metrics_aggregation():
         _row(id="e", status="error", reason="llm_timeout", correct_outcome=False),
     ]
     m = rag_eval.compute_metrics(rows, [])
-    assert m["answered_rate"] == pytest.approx(1 / 3, abs=1e-3)
+    # the provider error is reported separately and excluded from quality metrics
+    assert m["n_errors"] == 1 and m["n_scored"] == 3 and m["error_rate"] == 0.25
+    assert m["error_reasons"] == {"llm_timeout": 1}
+    assert m["answered_rate"] == 0.5
     assert m["abstention_recall"] == 1.0
     assert m["expected_article_cited"] == 0.5
-    assert m["citation_failure_rate"] == pytest.approx(1 / 3, abs=1e-3)
-    assert m["error_rate"] == 0.25
+    assert m["citation_failure_rate"] == 0.5
+    assert m["outcome_accuracy"] == pytest.approx(2 / 3, abs=1e-3)
+
+
+def test_rag_metrics_empty_denominators_are_null_not_zero():
+    """20 answerable-only questions must not report abstention_recall = 0.0 (it was not measured)."""
+    m = rag_eval.compute_metrics([_row(), _row(id="e", status="error", reason="llm_unavailable")], [])
+    assert m["abstention_recall"] is None and m["n_negative_scored"] == 0
+    all_err = rag_eval.compute_metrics([_row(status="error", reason="llm_unavailable")], [])
+    assert all_err["outcome_accuracy"] is None and all_err["answered_rate"] is None and all_err["latency_p50_s"] is None
+
+
+class _RateLimited(Exception):
+    code = 429
+    status = "RESOURCE_EXHAUSTED"
+    message = "quota exceeded"
+
+    def __init__(self, delay: str):
+        super().__init__(f"429 RESOURCE_EXHAUSTED retry in {delay}")
+        self.details = {
+            "error": {
+                "code": 429,
+                "status": "RESOURCE_EXHAUSTED",
+                "details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": delay}],
+            }
+        }
+
+
+def test_provider_retry_delay_is_parsed():
+    from ecc_rag.rag.llm import provider_retry_delay_s
+
+    assert provider_retry_delay_s(_RateLimited("17s")) == 17.0
+    assert provider_retry_delay_s(_RateLimited("0.5s")) == 0.5
+    assert provider_retry_delay_s(RuntimeError("503 UNAVAILABLE")) is None
+
+
+def test_rate_limit_honours_retry_after_then_succeeds(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    c = _client([_RateLimited("3s")])
+    c.max_retry_wait_s = 10
+    assert c._call("x", None) == "ok"
+    assert 3.0 in slept and c._client.models.calls == 2
+
+
+def test_rate_limit_longer_than_budget_fails_fast(monkeypatch):
+    slept: list[float] = []
+    monkeypatch.setattr("time.sleep", slept.append)
+    c = _client([_RateLimited("45s")] * 3)
+    c.max_retry_wait_s = 8
+    with pytest.raises(LLMUnavailableError, match="retry after 45s"):
+        c._call("x", None)
+    assert c._client.models.calls == 1 and 45.0 not in slept
+
+
+def test_quality_gate_rejects_incomplete_llm_run(tmp_path, monkeypatch):
+    monkeypatch.setattr(quality_gate, "PROJECT_ROOT", tmp_path)
+    gate_path = _gate_files(tmp_path, {"r": {"recall@5": 0.8}, "g": {"fp": 0.1}}, {"r": {"recall@5": 0.8}})
+    cfg = yaml.safe_load(gate_path.read_text())
+    cfg["llm_eval"] = {"path": str(tmp_path / "llm.json"), "floors": [{"metric": "outcome_accuracy", "min": 0.8}]}
+    gate_path.write_text(yaml.safe_dump(cfg))
+    run = {"complete": False, "limit": 20, "metrics": {"n_errors": 8, "outcome_accuracy": 0.95}}
+    (tmp_path / "llm.json").write_text(json.dumps(run))
+    res = quality_gate.run_gate(gate_path)
+    assert not res["passed"] and any("incomplete" in f for f in res["failures"])
+    run["complete"] = True
+    (tmp_path / "llm.json").write_text(json.dumps(run))
+    assert quality_gate.run_gate(gate_path)["passed"]
 
 
 def test_review_sheet_round_trip(tmp_path):
@@ -101,15 +170,18 @@ class _FakeModels:
 
     def generate_content(self, **kw):
         self.calls += 1
+        if not self.errors:
+            return "ok"
         err = self.errors.pop(0)
         if err:
             raise err
-        raise AssertionError("not reached")
+        return "ok"
 
 
 def _client(errors):
     c = GeminiClient.__new__(GeminiClient)
     c.model, c.max_retries = "m", 2
+    c.max_retry_wait_s, c.min_interval_s, c._last_call = 8.0, 0.0, 0.0
     c._client = type("C", (), {"models": _FakeModels(errors)})()
     return c
 
@@ -127,3 +199,22 @@ def test_gemini_error_mapping(monkeypatch):
     c = _client([TimeoutError("timeout")] * 3)
     with pytest.raises(LLMTimeoutError):
         c._call("x", None)
+
+
+def test_gemini_failure_logs_provider_detail_without_secrets(monkeypatch, caplog):
+    """Operators must see *why* Gemini failed (code/status/message); the API key must never appear."""
+    import logging
+
+    class FakeAPIError(Exception):
+        code = 404
+        status = "NOT_FOUND"
+        message = "models/gemini-x is not found for API version v1beta (key=AIzaSyA1234567890abcdefghijklmnop)"
+
+    monkeypatch.setattr("time.sleep", lambda s: None)
+    c = _client([FakeAPIError("404 NOT_FOUND")])
+    with caplog.at_level(logging.ERROR, logger="ecc_rag.rag.llm"), pytest.raises(LLMUnavailableError) as ei:
+        c._call("x", None)
+    logged = " ".join(r.getMessage() for r in caplog.records)
+    for text in (logged, str(ei.value)):
+        assert "code=404" in text and "NOT_FOUND" in text and "is not found" in text
+        assert "AIzaSy" not in text

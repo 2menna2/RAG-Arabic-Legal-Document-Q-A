@@ -97,7 +97,13 @@ def run_gate(config_path: Path, summary_path: Path | None = None) -> dict[str, A
     llm_p = root / cfg.get("llm_eval", {}).get("path", "reports/rag_eval.json")
     if llm_p.exists() and cfg.get("llm_eval"):
         llm = json.loads(llm_p.read_text(encoding="utf-8"))
-        for rule in cfg["llm_eval"].get("floors", []):
+        floors = cfg["llm_eval"].get("floors", [])
+        if floors and not llm.get("complete", False):
+            failures.append(
+                "LLM eval run is incomplete (provider errors or --limit) — re-run the full split before gating; "
+                f"errors={llm.get('metrics', {}).get('n_errors')}, limit={llm.get('limit')}"
+            )
+        for rule in floors:
             v = _get(llm.get("metrics", {}), rule["metric"])
             if v is None or v < rule["min"]:
                 failures.append(f"LLM eval {rule['metric']} = {v} < {rule['min']}")

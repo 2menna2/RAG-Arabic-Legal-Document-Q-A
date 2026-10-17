@@ -201,7 +201,7 @@ scripts/demo_gate_catches_regression.sh   # يثبت أن الـ gate يرفض �
 
 | # | البند | أين |
 |---|---|---|
-| 1 | `GEMINI_API_KEY` (والتأكد من توفر `gemini-2.5-flash` للمفتاح) | `.env` محليًا؛ GCP Secret Manager باسم `gemini-api-key` للإنتاج |
+| 1 | `GEMINI_API_KEY` (الافتراضي `gemini-3.8-flash`؛ `gemini-2.5-flash` لم يعد متاحًا للمستخدمين الجدد) | `.env` محليًا؛ GCP Secret Manager باسم `gemini-api-key` للإنتاج |
 | 2 | DVC remote حقيقي (Google Drive مجانًا، أو S3/GCS/Azure) + `dvc push` للبيانات | خطوات Google Drive في `docs/QUICKSTART_AR.md`؛ أسرار GitHub `DVC_REMOTE_URL` + `GDRIVE_CREDENTIALS_DATA` |
 | 3 | GitHub repository + جعل `data-quality-gate` و`docker-build-scan-smoke` checks إجبارية على `main` | إعدادات الـ branch protection |
 | 4 | GCP: project، Workload Identity Federation، service account للنشر وآخر للتشغيل | أسرار `GCP_WIF_PROVIDER`, `GCP_DEPLOY_SA`, `GCP_PROJECT`, `GCP_REGION` |
