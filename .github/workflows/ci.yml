@@ -30,8 +30,8 @@ jobs:
   lint-typecheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv sync --frozen --extra dev --python ${{ env.PYTHON_VERSION }}
       - run: uv run ruff check src tests scripts
@@ -41,20 +41,20 @@ jobs:
   unit-tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv sync --frozen --extra dev --extra pipeline --python ${{ env.PYTHON_VERSION }}
       # unit tests use small synthetic fixtures; they test code paths, never quality
       - run: uv run pytest tests/unit --cov --cov-report=xml --cov-fail-under=60
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with: {name: coverage-unit, path: coverage.xml}
 
   dependency-audit:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv export --frozen --no-dev --no-hashes --no-emit-project > requirements-runtime.txt
       - run: uvx pip-audit==2.7.3 -r requirements-runtime.txt --strict
@@ -67,7 +67,7 @@ jobs:
     outputs:
       corpus: ${{ steps.corpus.outputs.source }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Locate the corpus
         id: corpus
         env:
@@ -79,7 +79,7 @@ jobs:
             echo "::warning::No corpus (data/raw/Law.pdf not committed and no DVC remote secrets) — real-corpus tests, evaluation and quality gate were NOT run."
           fi
           echo "source=$src" >> "$GITHUB_OUTPUT"
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v7
         if: steps.corpus.outputs.source != 'none'
         with: {version: "${{ env.UV_VERSION }}"}
       - if: steps.corpus.outputs.source != 'none'
@@ -128,7 +128,7 @@ jobs:
       - name: Quality gate (fails on regression vs reports/baseline)
         if: steps.corpus.outputs.source != 'none'
         run: uv run python -m ecc_rag.evaluation.quality_gate
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always() && steps.corpus.outputs.source != 'none'
         with:
           name: eval-reports
@@ -138,7 +138,7 @@ jobs:
             reports/gates_eval.json
             reports/data_quality/
             mlflow.db
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: steps.corpus.outputs.source != 'none'
         with:
           name: processed-data
@@ -155,16 +155,16 @@ jobs:
     steps:
       - if: env.HAS_CORPUS != 'true'
         run: echo "::warning::No corpus available — image not built."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.HAS_CORPUS == 'true'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: env.HAS_CORPUS == 'true'
         with: {name: processed-data, path: data/processed}
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
         if: env.HAS_CORPUS == 'true'
       - name: Build image (tag = commit SHA)
         if: env.HAS_CORPUS == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/Dockerfile
@@ -176,7 +176,7 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Vulnerability scan (fails on fixable CRITICAL/HIGH)
         if: env.HAS_CORPUS == 'true'
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ecc-rag-api:${{ github.sha }}
           severity: CRITICAL,HIGH
