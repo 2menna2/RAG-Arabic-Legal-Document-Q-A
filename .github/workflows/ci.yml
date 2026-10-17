@@ -144,7 +144,7 @@ jobs:
         run: echo "::warning::No corpus available (DVC secrets missing) — image not built."
       - uses: actions/checkout@v4
         if: env.HAS_DVC == 'true'
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         if: env.HAS_DVC == 'true'
         with: {name: processed-data, path: data/processed}
       - uses: docker/setup-buildx-action@v3
