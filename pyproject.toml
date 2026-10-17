@@ -31,7 +31,7 @@ pipeline = ["pymupdf==1.28.2"]
 # experiment tracking + data versioning
 mlops = ["mlflow>=2.16,<4", "dvc>=3.50,<4"]
 # self-hosted neural embeddings / cross-encoder (optional, large: pulls torch)
-neural = ["sentence-transformers>=3,<6"]
+neural = ["sentence-transformers>=3,<7"]
 # LLM-based RAG evaluation (needs an LLM API key at run time). Import compatibility of this exact set was
 # verified on 2026-10-17 (ragas 0.3.9 breaks with langchain-community>=0.4); metrics were NOT executed offline.
 ragas = ["ragas==0.3.9", "langchain-community>=0.3,<0.4", "langchain-google-genai>=3,<4"]
