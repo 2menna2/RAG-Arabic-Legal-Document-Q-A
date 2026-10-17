@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "errors": [],
+  "warnings": [],
+  "stats": {
+    "records": 1149,
+    "repealed_per_source": 56,
+    "repealed_ranges": [
+      [
+        54,
+        80
+      ],
+      [
+        389,
+        417
+      ]
+    ],
+    "with_english": 1093,
+    "flagged_records": 56,
+    "ligature_artefact_tokens": 0,
+    "single_letter_tokens_possible_split_words": 405,
+    "unmapped_private_use_glyphs": 25,
+    "max_article_chars": 1408,
+    "source_hash_verified": true
+  },
+  "corpus_hash": "09b6949d3b3aee1b175ac7ce3151331f9515d0929ea71f766ece3a26b6b7cd72"
+}

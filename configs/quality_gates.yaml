@@ -1,0 +1,29 @@
+# Quality gates. Values were set AFTER measuring the baseline on 2026-10-17
+# (reports/baseline/eval_summary.json: retrieval test R@5 0.819, MRR 0.680; gates test balanced acc 0.763,
+# false-proceed 0.241, false-block 0.000) with a margin for run-to-run noise. Re-baseline deliberately with
+# `make baseline` when the golden dataset or the corpus changes — never edit numbers to make a run pass.
+data_validation_report: reports/data_quality/validation_report.json
+current_summary: reports/eval_summary.json
+baseline_summary: reports/baseline/eval_summary.json
+
+floors:
+  - {metric: retrieval_test.recall@5, min: 0.78}
+  - {metric: retrieval_test.mrr, min: 0.64}
+  - {metric: retrieval_test.recall@10, min: 0.85}
+  - {metric: gates_test.balanced_accuracy, min: 0.72}
+ceilings:
+  - {metric: gates_test.false_proceed_rate, max: 0.30}
+  - {metric: gates_test.false_block_rate, max: 0.05}
+
+max_regression:     # vs baseline, same golden dataset hash
+  - {metric: retrieval_test.recall@5, tolerance: 0.02}
+  - {metric: retrieval_test.mrr, tolerance: 0.02}
+  - {metric: retrieval_dev.recall@5, tolerance: 0.02}
+  - {metric: gates_test.balanced_accuracy, tolerance: 0.03}
+
+# Applied only when an LLM evaluation (`make eval-llm`, needs GEMINI_API_KEY) has produced reports/rag_eval.json.
+# Floors are placeholders to be set after the first real Gemini baseline run — until then generation quality is
+# reported as NOT gated (the gate prints this explicitly).
+llm_eval:
+  path: reports/rag_eval.json
+  floors: []

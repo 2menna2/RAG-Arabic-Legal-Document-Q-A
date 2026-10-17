@@ -1,0 +1,88 @@
+{
+  "run_at": "2026-10-17T01:54:38+00:00",
+  "label": "docker read-only, --cpus 2 --memory 1g, LLM disabled, POST /api/v1/search (retrieval only), host: 2 vCPU 7.8 GiB",
+  "base_url": "http://127.0.0.1:18001",
+  "client_machine": {
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "python": "3.12.3"
+  },
+  "server_rss_bytes_before": 341270528.0,
+  "server_rss_bytes_after": 466653184.0,
+  "levels": [
+    {
+      "endpoint": "search",
+      "concurrency": 1,
+      "requests": 1212,
+      "duration_s": 20.01,
+      "throughput_rps": 60.58,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 1212
+      },
+      "p50_ms": 15.5,
+      "p95_ms": 20.5,
+      "p99_ms": 35.2,
+      "mean_ms": 16.5
+    },
+    {
+      "endpoint": "search",
+      "concurrency": 4,
+      "requests": 1633,
+      "duration_s": 20.03,
+      "throughput_rps": 81.54,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 1633
+      },
+      "p50_ms": 47.4,
+      "p95_ms": 71.2,
+      "p99_ms": 86.4,
+      "mean_ms": 49.0
+    },
+    {
+      "endpoint": "search",
+      "concurrency": 8,
+      "requests": 1585,
+      "duration_s": 20.07,
+      "throughput_rps": 78.99,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 1585
+      },
+      "p50_ms": 97.9,
+      "p95_ms": 146.8,
+      "p99_ms": 184.5,
+      "mean_ms": 101.2
+    },
+    {
+      "endpoint": "search",
+      "concurrency": 16,
+      "requests": 1505,
+      "duration_s": 20.06,
+      "throughput_rps": 75.01,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 1505
+      },
+      "p50_ms": 204.3,
+      "p95_ms": 311.0,
+      "p99_ms": 403.5,
+      "mean_ms": 213.0
+    },
+    {
+      "endpoint": "search",
+      "concurrency": 32,
+      "requests": 1423,
+      "duration_s": 20.17,
+      "throughput_rps": 70.56,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 1423
+      },
+      "p50_ms": 447.9,
+      "p95_ms": 609.6,
+      "p99_ms": 714.4,
+      "mean_ms": 452.0
+    }
+  ]
+}

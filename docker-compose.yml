@@ -1,0 +1,107 @@
+# Local stack. Default profile = the API alone (embedded Qdrant baked into the image).
+#   docker compose up -d                               # API only
+#   docker compose --profile monitoring up -d          # + Prometheus + Grafana
+#   docker compose --profile mlflow up -d              # + MLflow tracking server
+#   docker compose --profile qdrant up -d              # API backed by a Qdrant server (multi-replica ready)
+# Secrets come from .env (never committed). Images are tagged by git SHA via ECC_IMAGE_TAG.
+name: ecc-rag
+
+x-api: &api
+  image: ecc-rag-api:${ECC_IMAGE_TAG:-dev}
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    args:
+      BASE_IMAGE: ${BASE_IMAGE:-python:3.12-slim-bookworm}
+      GIT_SHA: ${ECC_IMAGE_TAG:-dev}
+  env_file:
+    - path: .env
+      required: false
+  environment:
+    LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  deploy:
+    resources:
+      limits: {cpus: "2", memory: 1g}
+
+services:
+  api:
+    <<: *api
+    ports: ["127.0.0.1:8000:8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------------------------------------------------------------- Qdrant server variant
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    profiles: ["qdrant"]
+    volumes: ["qdrant_data:/qdrant/storage"]
+    ports: ["127.0.0.1:6333:6333"]
+    restart: unless-stopped
+  indexer:   # one-shot: writes the collection for the current corpus/config into the Qdrant server
+    <<: *api
+    profiles: ["qdrant"]
+    read_only: false
+    restart: "no"
+    environment: {QDRANT_URL: "http://qdrant:6333", QDRANT_PATH: ""}
+    command: ["python", "-m", "ecc_rag.rag.index", "--chunks", "data/processed/chunks.jsonl", "--articles", "data/processed/articles.jsonl", "--index-dir", "/tmp/index"]
+    depends_on: [qdrant]
+  api-qdrant:
+    <<: *api
+    profiles: ["qdrant"]
+    ports: ["127.0.0.1:8001:8000"]
+    environment: {QDRANT_URL: "http://qdrant:6333", QDRANT_PATH: ""}
+    depends_on:
+      indexer: {condition: service_completed_successfully}
+
+  # ---------------------------------------------------------------- monitoring
+  prometheus:
+    image: prom/prometheus:v2.53.2
+    profiles: ["monitoring"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=15d", "--web.enable-lifecycle"]
+    volumes:
+      - ./deploy/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./deploy/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports: ["127.0.0.1:9090:9090"]
+    depends_on: [api]
+    restart: unless-stopped
+  grafana:
+    image: grafana/grafana:11.2.2
+    profiles: ["monitoring"]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------- experiment tracking
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.2
+    profiles: ["mlflow"]
+    command: >-
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db --artifacts-destination /mlflow/artifacts --serve-artifacts
+    volumes: ["mlflow_data:/mlflow"]
+    ports: ["127.0.0.1:5000:5000"]
+    restart: unless-stopped
+
+volumes:
+  qdrant_data: {}
+  prometheus_data: {}
+  grafana_data: {}
+  mlflow_data: {}

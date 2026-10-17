@@ -1,0 +1,93 @@
+# Release & deployment. Triggered by a version tag (v*) or manually on main.
+# Gates: the same lint/test/data/quality-gate jobs as CI must pass first (reusable workflow call),
+# then the image is pushed to GHCR with immutable tags (git SHA + version; `latest` is never relied on),
+# then deployment to Cloud Run waits for manual approval on the `production` environment.
+# Required secrets: DVC_REMOTE_URL (+ storage creds, see ci.yml), GCP_WIF_PROVIDER, GCP_DEPLOY_SA,
+#                   GCP_PROJECT, GCP_REGION; GEMINI_API_KEY lives in GCP Secret Manager as `gemini-api-key`.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish-image:
+    needs: validate
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {name: processed-data, path: data/processed}
+      - id: meta
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}/ecc-rag-api" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          provenance: true
+          sbom: true
+          build-args: GIT_SHA=${{ github.sha }}
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+            ${{ steps.meta.outputs.image }}:${{ github.ref_name }}
+
+  deploy-production:
+    needs: publish-image
+    runs-on: ubuntu-24.04
+    environment: production          # configure required reviewers on this environment
+    permissions: {contents: read, id-token: write}
+    env:
+      SERVICE: ecc-rag-api
+      # 0 = scale to zero (fits the Cloud Run free tier; first request after idle is slower).
+      # Set repository variable CLOUD_RUN_MIN_INSTANCES=1 to keep one instance warm (billed continuously).
+      MIN_INSTANCES: ${{ vars.CLOUD_RUN_MIN_INSTANCES || '0' }}
+      IMAGE: ${{ needs.publish-image.outputs.image }}:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Remember current revision (for rollback)
+        id: prev
+        run: |
+          prev=$(gcloud run services describe "$SERVICE" --region "${{ secrets.GCP_REGION }}" --project "${{ secrets.GCP_PROJECT }}" \
+                 --format='value(status.traffic[0].revisionName)' 2>/dev/null || true)
+          echo "revision=$prev" >> "$GITHUB_OUTPUT"
+      - name: Deploy new revision with no traffic
+        run: |
+          gcloud run deploy "$SERVICE" --image "$IMAGE" --region "${{ secrets.GCP_REGION }}" --project "${{ secrets.GCP_PROJECT }}" \
+            --no-traffic --tag "sha-${GITHUB_SHA::7}" --port 8000 --cpu 2 --memory 1Gi --concurrency 8 --min-instances "${MIN_INSTANCES}" --max-instances 4 --cpu-boost \
+            --set-env-vars "LLM_PROVIDER=gemini,LOG_QUESTIONS=hashed,RATE_LIMIT_PER_MINUTE=30" \
+            --set-secrets "GEMINI_API_KEY=gemini-api-key:latest" --no-allow-unauthenticated
+      - name: Smoke test the tagged revision
+        run: |
+          # the service is private (--no-allow-unauthenticated): reach the tagged revision through an authenticated local proxy
+          gcloud run services proxy "$SERVICE" --tag "sha-${GITHUB_SHA::7}" --region "${{ secrets.GCP_REGION }}" --project "${{ secrets.GCP_PROJECT }}" --port 8080 &
+          sleep 8
+          bash scripts/smoke_test.sh http://127.0.0.1:8080 --require-llm
+      - name: Shift traffic to the new revision
+        run: |
+          gcloud run services update-traffic "$SERVICE" --to-tags "sha-${GITHUB_SHA::7}=100" \
+            --region "${{ secrets.GCP_REGION }}" --project "${{ secrets.GCP_PROJECT }}"
+      - name: Roll back on failure
+        if: failure() && steps.prev.outputs.revision != ''
+        run: |
+          gcloud run services update-traffic "$SERVICE" --to-revisions "${{ steps.prev.outputs.revision }}=100" \
+            --region "${{ secrets.GCP_REGION }}" --project "${{ secrets.GCP_PROJECT }}"

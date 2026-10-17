@@ -1,0 +1,178 @@
+# Pull-request / main-branch validation. Nothing here deploys.
+# Required repository secrets for the data-dependent jobs (see docs/CI_CD.md):
+#   DVC_REMOTE_URL   gdrive://<folder-id> (free) | s3://bucket/path | gs://bucket/path | azure://container/path
+#   + credentials for that remote:
+#     gdrive: GDRIVE_CREDENTIALS_DATA (service-account JSON; share the Drive folder with it)
+#     s3:     AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY      gs: GOOGLE_APPLICATION_CREDENTIALS_JSON
+# Without them, data-dependent jobs are SKIPPED and say so — they never fall back to synthetic data.
+name: ci
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.11.32"
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint-typecheck:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with: {version: "${{ env.UV_VERSION }}"}
+      - run: uv sync --frozen --extra dev --python ${{ env.PYTHON_VERSION }}
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
+      - run: uv run mypy
+
+  unit-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with: {version: "${{ env.UV_VERSION }}"}
+      - run: uv sync --frozen --extra dev --extra pipeline --python ${{ env.PYTHON_VERSION }}
+      # unit tests use small synthetic fixtures; they test code paths, never quality
+      - run: uv run pytest tests/unit --cov --cov-report=xml --cov-fail-under=60
+      - uses: actions/upload-artifact@v4
+        with: {name: coverage-unit, path: coverage.xml}
+
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with: {version: "${{ env.UV_VERSION }}"}
+      - run: uv export --frozen --no-dev --no-hashes --no-emit-project > requirements-runtime.txt
+      - run: uvx pip-audit==2.7.3 -r requirements-runtime.txt --strict
+
+  data-quality-gate:
+    # Needs the real corpus from the DVC remote. Integration/e2e tests + evaluation + quality gate.
+    runs-on: ubuntu-24.04
+    needs: [lint-typecheck, unit-tests]
+    env:
+      HAS_DVC: ${{ secrets.DVC_REMOTE_URL != '' }}
+    steps:
+      - name: Skip notice
+        if: env.HAS_DVC != 'true'
+        run: echo "::warning::DVC remote secrets not configured — real-corpus tests, evaluation and quality gate were NOT run."
+      - uses: actions/checkout@v4
+        if: env.HAS_DVC == 'true'
+      - uses: astral-sh/setup-uv@v5
+        if: env.HAS_DVC == 'true'
+        with: {version: "${{ env.UV_VERSION }}"}
+      - if: env.HAS_DVC == 'true'
+        run: uv sync --frozen --extra dev --extra pipeline --extra mlops --python ${{ env.PYTHON_VERSION }}
+      - name: Pull versioned data
+        if: env.HAS_DVC == 'true'
+        env:
+          DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
+          GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          GCS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}
+        run: |
+          # Remote plugins are installed in an isolated tool env (uvx), not in the locked project env:
+          # dvc-gdrive pins old cryptography/pyopenssl and must not downgrade the application's dependencies.
+          case "$DVC_REMOTE_URL" in
+            gdrive://*) plugin="dvc-gdrive==3.0.1" ;;
+            s3://*)     plugin="dvc-s3" ;;
+            gs://*)     plugin="dvc-gs" ;;
+            azure://*)  plugin="dvc-azure" ;;
+            *)          echo "::error::unsupported DVC_REMOTE_URL scheme"; exit 1 ;;
+          esac
+          uv run dvc remote add -d -f ci "$DVC_REMOTE_URL" --local
+          if [[ "$DVC_REMOTE_URL" == gdrive://* ]]; then
+            uv run dvc remote modify --local ci gdrive_use_service_account true
+          fi
+          if [[ "$DVC_REMOTE_URL" == gs://* ]]; then
+            printf '%s' "$GCS_CREDENTIALS_JSON" > "$RUNNER_TEMP/gcs.json"
+            export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/gcs.json"
+          fi
+          uvx --from "dvc==3.67.1" --with "$plugin" dvc pull data/raw/Law.pdf.dvc
+          uv run dvc repro index   # rebuilds rows→articles→validate→chunks→index from the PDF; fails on validation errors
+          # DVC skips `validate` when articles.jsonl is byte-identical to the last validated one; run it anyway
+          uv run dvc repro --force --single-item validate
+          git diff --exit-code dvc.lock || (echo "::error::dvc.lock changed: pipeline outputs are not reproducible from the committed state" && exit 1)
+      - name: Integration + e2e tests (real corpus)
+        if: env.HAS_DVC == 'true'
+        run: uv run pytest tests/integration tests/e2e --cov --cov-report=term --cov-fail-under=0
+      - name: Offline evaluation
+        if: env.HAS_DVC == 'true'
+        run: uv run python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db
+      - name: Quality gate (fails on regression vs reports/baseline)
+        if: env.HAS_DVC == 'true'
+        run: uv run python -m ecc_rag.evaluation.quality_gate
+      - uses: actions/upload-artifact@v4
+        if: always() && env.HAS_DVC == 'true'
+        with:
+          name: eval-reports
+          path: |
+            reports/eval_summary.json
+            reports/retrieval_eval.json
+            reports/gates_eval.json
+            reports/data_quality/
+            mlflow.db
+      - uses: actions/upload-artifact@v4
+        if: env.HAS_DVC == 'true'
+        with:
+          name: processed-data
+          retention-days: 3
+          path: |
+            data/processed/articles.jsonl
+            data/processed/chunks.jsonl
+
+  docker-build-scan-smoke:
+    runs-on: ubuntu-24.04
+    needs: [data-quality-gate]
+    env:
+      HAS_DVC: ${{ secrets.DVC_REMOTE_URL != '' }}
+    steps:
+      - if: env.HAS_DVC != 'true'
+        run: echo "::warning::No corpus available (DVC secrets missing) — image not built."
+      - uses: actions/checkout@v4
+        if: env.HAS_DVC == 'true'
+      - uses: actions/download-artifact@v4
+        if: env.HAS_DVC == 'true'
+        with: {name: processed-data, path: data/processed}
+      - uses: docker/setup-buildx-action@v3
+        if: env.HAS_DVC == 'true'
+      - name: Build image (tag = commit SHA)
+        if: env.HAS_DVC == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          load: true
+          push: false
+          tags: ecc-rag-api:${{ github.sha }}
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Vulnerability scan (fails on fixable CRITICAL/HIGH)
+        if: env.HAS_DVC == 'true'
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ecc-rag-api:${{ github.sha }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Smoke test container (retrieval-only mode, no secrets)
+        if: env.HAS_DVC == 'true'
+        run: |
+          docker run -d --name ecc --read-only --tmpfs /tmp -p 8000:8000 -e LLM_PROVIDER=none ecc-rag-api:${{ github.sha }}
+          for i in $(seq 1 30); do curl -fsS localhost:8000/health && break; sleep 2; done
+          bash scripts/smoke_test.sh http://localhost:8000
+          docker exec ecc sh -c 'test ! -e /app/.env' && docker exec ecc id -u | grep -qv '^0$'

@@ -1,0 +1,11 @@
+{
+  "articles": 1149,
+  "headings": 223,
+  "parse_events": [],
+  "issues": [],
+  "quality_flag_counts": {
+    "one_sided_continuation_row": 58,
+    "ar_cell_empty_in_header_row": 1,
+    "ar_text_missing": 1
+  }
+}

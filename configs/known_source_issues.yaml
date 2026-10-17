@@ -1,0 +1,65 @@
+# Defects that exist in the SOURCE PDF itself (verified by viewing the page images).
+# They are documented, surfaced as quality flags and NOT patched with invented text.
+# Validation fails on any article-level problem that is not listed here.
+issues:
+  - id: SRC-001
+    articles: [1021, 1022]
+    pages: [147, 148]
+    kind: bilingual_misalignment
+    description: >-
+      In the source, the Arabic cell of Article 1021 contains paragraphs (2) and (3) whose
+      content corresponds to the English text labelled "Article1022". The Arabic cell for
+      Article 1022 is empty, and the English paragraph "the cost of the necessary works ... borne by
+      the owner of the dominant tenement" has no Arabic counterpart in this source. The reference
+      project replaced this with hand-typed Arabic text that does not appear in the PDF; we do not.
+    handling: >-
+      article 1022 keeps an empty article_text (flag ar_text_missing) and is retrievable via its
+      English text; article 1021 keeps the Arabic text exactly as printed. Answers citing 1021/1022
+      must be verified against an official source.
+    allowed_flags:
+      1022: [ar_text_missing, ar_cell_empty_in_header_row, one_sided_continuation_row]
+  - id: SRC-002
+    articles: [1022]
+    pages: [147, 148]
+    kind: degraded_english_line_order
+    description: >-
+      English text of Article 1022 is rendered with highlighted, out-of-order line fragments
+      ("f an agreement to the contrary, the cost In the absence o ..."). Extraction is faithful to
+      the glyph order on the page.
+  - id: SRC-003
+    articles: [452]
+    pages: [59]
+    kind: missing_header_glyph
+    description: >-
+      The English header of Article 452 is extracted as "rticle 452" (the capital A is not
+      present as extractable text). The parser accepts "A?rticle" so the article is not lost
+      (the reference implementation dropped Article 452 entirely).
+  - id: SRC-004
+    articles: "*"
+    kind: intra_word_spacing
+    description: >-
+      Some Arabic words contain spurious spaces in the source glyph stream (e.g. "الره ن",
+      "ا لمج اورة"). They are kept in article_text (faithful copy) and mitigated at search time by
+      character n-gram retrieval. Count is reported in the data quality report.
+  - id: SRC-005
+    articles: "*"
+    kind: unofficial_translation
+    description: >-
+      The English column is an unofficial translation of unknown authorship; it is used for
+      cross-lingual retrieval only. Answers cite the Arabic text.
+  - id: SRC-006
+    articles: [812]
+    pages: [115]
+    kind: arabic_text_omission
+    description: >-
+      The Arabic text of Article 812 as printed in the source reads "وذلك فى نظير تعويض فيه أخف ضررا"
+      — words are missing between "تعويض" and "فيه" (the English column has "subject to payment of fair
+      compensation. This right of way must be exercised over land and at the place where the passage
+      causes the least possible damage"). Kept as printed; answers must not fill the gap from memory.
+  - id: SRC-007
+    articles: "*"
+    kind: possible_number_reordering
+    description: >-
+      Where two separate numbers appear close together inside one RTL line (e.g. Article 194
+      "المادة ٢ فقرة ٧١٧"), their relative order may differ from the printed page. Digits inside each
+      number are re-ordered correctly by the extractor; cross-references should be verified on the PDF.

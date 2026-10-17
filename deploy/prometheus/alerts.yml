@@ -1,0 +1,55 @@
+# Alert rules. Thresholds are starting points to be tuned against real traffic; they were validated
+# syntactically (promtool) and against synthetic metrics only — NOT against production traffic.
+groups:
+  - name: ecc-rag-availability
+    rules:
+      - alert: EccApiDown
+        expr: up{job="ecc-rag-api"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "ECC RAG API is not being scraped (down or unreachable)"}
+      - alert: EccNotReady
+        expr: ecc_ready == 0
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "/ready is failing (index incompatible, vector store or LLM not configured)"}
+      - alert: EccHigh5xxRate
+        expr: |
+          sum(rate(ecc_http_requests_total{route=~"/api/.*",status_code=~"5.."}[5m]))
+            / clamp_min(sum(rate(ecc_http_requests_total{route=~"/api/.*"}[5m])), 1e-9) > 0.05
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "More than 5% of API requests fail with 5xx"}
+      - alert: EccHighLatencyP95
+        expr: histogram_quantile(0.95, sum by (le) (rate(ecc_http_request_duration_seconds_bucket{route="/api/v1/ask"}[5m]))) > 15
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "p95 latency of /api/v1/ask above 15s"}
+  - name: ecc-rag-dependencies
+    rules:
+      - alert: EccLlmErrors
+        expr: sum(rate(ecc_llm_errors_total[5m])) > 0.05
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "LLM provider errors/timeouts (code label shows which)"}
+      - alert: EccVectorStoreErrors
+        expr: increase(ecc_vector_store_errors_total[10m]) > 0
+        labels: {severity: critical}
+        annotations: {summary: "Vector store errors observed"}
+  - name: ecc-rag-behaviour
+    rules:
+      - alert: EccAbstentionSpike
+        expr: |
+          sum(rate(ecc_rag_outcomes_total{status="abstained"}[30m]))
+            / clamp_min(sum(rate(ecc_rag_outcomes_total[30m])), 1e-9) > 0.5
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: "More than half of answers abstain — retrieval/index or prompt regression?"}
+      - alert: EccCitationValidationFailures
+        expr: increase(ecc_abstentions_total{reason="citation_validation_failed"}[1h]) > 10
+        labels: {severity: warning}
+        annotations: {summary: "Many answers rejected by citation validation in the last hour"}
+      - alert: EccOfflineEvalBelowFloor
+        expr: ecc_eval_metric{metric="recall@5", split="retrieval_test"} < 0.78
+        labels: {severity: warning}
+        annotations: {summary: "Latest offline evaluation run is below the quality floor (see configs/quality_gates.yaml)"}

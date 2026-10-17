@@ -1,0 +1,61 @@
+{
+  "run_at": "2026-10-17T01:55:34+00:00",
+  "label": "POST /api/v1/ask with LLM_PROVIDER=none: full pre-generation path (guardrails, retrieval, scope, evidence), ends in 503 llm_unavailable or 200 for rejected/out-of-scope; LLM latency NOT included",
+  "base_url": "http://127.0.0.1:18001",
+  "client_machine": {
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "python": "3.12.3"
+  },
+  "server_rss_bytes_before": 466653184.0,
+  "server_rss_bytes_after": 465801216.0,
+  "levels": [
+    {
+      "endpoint": "ask",
+      "concurrency": 1,
+      "requests": 674,
+      "duration_s": 15.01,
+      "throughput_rps": 44.91,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 140,
+        "503": 534
+      },
+      "p50_ms": 22.1,
+      "p95_ms": 28.2,
+      "p99_ms": 38.2,
+      "mean_ms": 22.3
+    },
+    {
+      "endpoint": "ask",
+      "concurrency": 4,
+      "requests": 938,
+      "duration_s": 15.06,
+      "throughput_rps": 62.3,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 190,
+        "503": 748
+      },
+      "p50_ms": 64.3,
+      "p95_ms": 92.5,
+      "p99_ms": 104.0,
+      "mean_ms": 64.2
+    },
+    {
+      "endpoint": "ask",
+      "concurrency": 8,
+      "requests": 874,
+      "duration_s": 15.08,
+      "throughput_rps": 57.96,
+      "error_rate": 0.0,
+      "status_codes": {
+        "200": 153,
+        "503": 721
+      },
+      "p50_ms": 137.2,
+      "p95_ms": 199.4,
+      "p99_ms": 226.2,
+      "mean_ms": 137.8
+    }
+  ]
+}

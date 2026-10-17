@@ -1,0 +1,114 @@
+# Reproducible pipeline: `dvc repro` rebuilds everything from data/raw/Law.pdf (pulled with `dvc pull`).
+stages:
+  extract:
+    cmd: python -m ecc_rag.data_pipeline.pdf_extract --input data/raw/Law.pdf --output data/interim/rows.jsonl
+    deps:
+      - data/raw/Law.pdf
+      - src/ecc_rag/data_pipeline/pdf_extract.py
+    outs:
+      - data/interim/rows.jsonl
+
+  parse:
+    cmd: >-
+      python -m ecc_rag.data_pipeline.parse_articles --rows data/interim/rows.jsonl
+      --output data/processed/articles.jsonl --report reports/data_quality/parse_report.json
+    deps:
+      - data/interim/rows.jsonl
+      - src/ecc_rag/data_pipeline/parse_articles.py
+      - src/ecc_rag/data_pipeline/arabic.py
+      - src/ecc_rag/data_pipeline/schema.py
+      - configs/source.yaml
+    outs:
+      - data/processed/articles.jsonl
+    metrics:
+      - reports/data_quality/parse_report.json:
+          cache: false
+
+  validate:
+    cmd: >-
+      python -m ecc_rag.data_pipeline.validate --input data/processed/articles.jsonl --pdf data/raw/Law.pdf
+      --report reports/data_quality/validation_report.json
+    deps:
+      - data/processed/articles.jsonl
+      - src/ecc_rag/data_pipeline/validate.py
+      - configs/known_source_issues.yaml
+    metrics:
+      - reports/data_quality/validation_report.json:
+          cache: false
+
+  chunk:
+    cmd: python -m ecc_rag.data_pipeline.chunking --input data/processed/articles.jsonl --output data/processed/chunks.jsonl
+    deps:
+      - data/processed/articles.jsonl
+      - reports/data_quality/validation_report.json
+      - src/ecc_rag/data_pipeline/chunking.py
+    params:
+      - configs/rag.yaml:
+          - chunking
+    outs:
+      - data/processed/chunks.jsonl
+
+  index:
+    cmd: python -m ecc_rag.rag.index --chunks data/processed/chunks.jsonl --articles data/processed/articles.jsonl --index-dir data/index
+    deps:
+      - data/processed/chunks.jsonl
+      - data/processed/articles.jsonl
+      - src/ecc_rag/rag/index.py
+      - src/ecc_rag/rag/embeddings.py
+      - src/ecc_rag/rag/vector_store.py
+    params:
+      - configs/rag.yaml:
+          - chunking
+          - embedding
+    outs:
+      - data/index
+
+  reference_baseline:
+    cmd: python baselines/reference_pipeline/run_reference.py data/raw/Law.pdf data/baselines/reference_civil_code_ready.json
+    deps:
+      - data/raw/Law.pdf
+      - baselines/reference_pipeline
+    outs:
+      - data/baselines/reference_civil_code_ready.json
+
+  benchmark:
+    cmd: >-
+      python -m ecc_rag.evaluation.benchmark --reference-corpus data/baselines/reference_civil_code_ready.json
+      --output reports/retrieval_benchmark.json --mlflow-uri sqlite:///mlflow.db
+    deps:
+      - data/processed/articles.jsonl
+      - data/baselines/reference_civil_code_ready.json
+      - data/evaluation/golden_v1.yaml
+      - src/ecc_rag/evaluation/benchmark.py
+      - src/ecc_rag/rag/retriever.py
+      - src/ecc_rag/rag/query.py
+      - src/ecc_rag/data_pipeline/chunking.py
+    params:
+      - configs/rag.yaml:
+          - embedding
+          - retrieval
+    metrics:
+      - reports/retrieval_benchmark.json:
+          cache: false
+    outs:
+      - reports/retrieval_benchmark_rows.json
+
+  evaluate:
+    cmd: python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db
+    deps:
+      - data/index
+      - data/processed/chunks.jsonl
+      - data/evaluation/golden_v1.yaml
+      - src/ecc_rag
+    params:
+      - configs/rag.yaml:
+          - retrieval
+          - scope
+          - evidence
+    metrics:
+      - reports/eval_summary.json:
+          cache: false
+      - reports/retrieval_eval.json:
+          cache: false
+      - reports/gates_eval.json:
+          cache: false

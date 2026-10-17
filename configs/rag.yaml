@@ -1,0 +1,65 @@
+# Versioned RAG configuration. Every value here is logged to MLflow and the
+# chunking/embedding sections are hashed into the index manifest.
+# Values marked "selected by benchmark" were chosen from reports/retrieval_benchmark.md
+# on the DEV split; the TEST split is only used for final reporting / CI gates.
+
+chunking:
+  strategy: article_ctx          # selected by benchmark (article | article_ctx | paragraph)
+  params:
+    include_english: true
+    min_chars_to_split: 600
+
+embedding:
+  # lsa runs offline (CI, air-gapped). For production quality set provider: gemini
+  # (needs GEMINI_API_KEY) and rebuild the index: `make index`.
+  provider: lsa
+  lsa:
+    n_components: 256
+    ngram_range: [2, 5]
+    min_df: 2
+  gemini:
+    model: gemini-embedding-001
+    dim: 768
+  sentence_transformers:
+    model: intfloat/multilingual-e5-base
+    query_prefix: "query: "
+    doc_prefix: "passage: "
+
+retrieval:
+  method: hybrid                 # selected by benchmark (bm25 | tfidf | dense | hybrid)
+  hybrid_components: [bm25, tfidf, dense]
+  rrf_k: 60
+  rrf_weights: {bm25: 1.0, tfidf: 1.0, dense: 1.0}
+  candidate_k: 50
+  top_k: 5                       # articles passed to the generator
+  bm25_k1: 1.5
+  bm25_b: 0.75
+  use_dialect_expansion: false   # measured: hurts dev Recall@5 (0.750 -> 0.726); kept for experiments
+  strip_question_frame: true
+  honor_explicit_refs: true
+
+reranker:
+  enabled: false                 # cross-encoder could not be benchmarked offline; see reports
+  model: BAAI/bge-reranker-v2-m3
+  candidates: 20
+
+scope:
+  # calibrated on the DEV split: `python -m ecc_rag.evaluation.gates_eval --calibrate`
+  # (reports/threshold_calibration.json). Do not tune on the test split.
+  min_tfidf_for_in_scope: 0.10
+  min_coverage_for_in_scope: 0.10
+  min_idf_single_term: 2.5
+  other_law_override_coverage: 0.8
+  other_law_override_tfidf: 0.35
+
+evidence:
+  min_top_tfidf: 0.04
+  min_query_coverage: 0.10
+  coverage_top_n: 3
+
+generation:
+  prompt_version: v1
+  max_context_articles: 5
+  max_article_chars: 2500
+  require_citations: true
+  max_validation_retries: 1

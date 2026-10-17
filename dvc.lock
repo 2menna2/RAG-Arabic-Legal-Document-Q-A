@@ -1,0 +1,314 @@
+schema: '2.0'
+stages:
+  extract:
+    cmd: python -m ecc_rag.data_pipeline.pdf_extract --input data/raw/Law.pdf 
+      --output data/interim/rows.jsonl
+    deps:
+    - path: data/raw/Law.pdf
+      hash: md5
+      md5: 5086ef5f16f15d856278db943e58e948
+      size: 2599703
+    - path: src/ecc_rag/data_pipeline/pdf_extract.py
+      hash: md5
+      md5: eee71592e3124815fafd2affc8ce9586
+      size: 10043
+    outs:
+    - path: data/interim/rows.jsonl
+      hash: md5
+      md5: 3001f686e7d381013506bc00c8a1b511
+      size: 1213625
+  parse:
+    cmd: python -m ecc_rag.data_pipeline.parse_articles --rows 
+      data/interim/rows.jsonl --output data/processed/articles.jsonl --report 
+      reports/data_quality/parse_report.json
+    deps:
+    - path: configs/source.yaml
+      hash: md5
+      md5: 95505deb073357f9f61b944045ce8b6f
+      size: 1295
+    - path: data/interim/rows.jsonl
+      hash: md5
+      md5: 3001f686e7d381013506bc00c8a1b511
+      size: 1213625
+    - path: src/ecc_rag/data_pipeline/arabic.py
+      hash: md5
+      md5: bac704215fe0827a3a34b2e46eac3900
+      size: 5904
+    - path: src/ecc_rag/data_pipeline/parse_articles.py
+      hash: md5
+      md5: 87f0050bdb499e4d86f73c17ff4c6021
+      size: 12818
+    - path: src/ecc_rag/data_pipeline/schema.py
+      hash: md5
+      md5: 9a73403b80ae09e257265d7cc2991f18
+      size: 2465
+    outs:
+    - path: data/processed/articles.jsonl
+      hash: md5
+      md5: 8137e1c726d9e59da0808b4f533e42e9
+      size: 2439373
+    - path: reports/data_quality/parse_report.json
+      hash: md5
+      md5: 51597ef816e327928373036d1652a65b
+      size: 212
+  validate:
+    cmd: python -m ecc_rag.data_pipeline.validate --input 
+      data/processed/articles.jsonl --pdf data/raw/Law.pdf --report 
+      reports/data_quality/validation_report.json
+    deps:
+    - path: configs/known_source_issues.yaml
+      hash: md5
+      md5: 48575e225318235883a35c78874954af
+      size: 3481
+    - path: data/processed/articles.jsonl
+      hash: md5
+      md5: 8137e1c726d9e59da0808b4f533e42e9
+      size: 2439373
+    - path: src/ecc_rag/data_pipeline/validate.py
+      hash: md5
+      md5: d23f9d098cbd5bfbfad2a7ba81613437
+      size: 7270
+    outs:
+    - path: reports/data_quality/validation_report.json
+      hash: md5
+      md5: 192a4e5159faf104b299159462ae47f5
+      size: 567
+  chunk:
+    cmd: python -m ecc_rag.data_pipeline.chunking --input 
+      data/processed/articles.jsonl --output data/processed/chunks.jsonl
+    deps:
+    - path: data/processed/articles.jsonl
+      hash: md5
+      md5: 8137e1c726d9e59da0808b4f533e42e9
+      size: 2439373
+    - path: reports/data_quality/validation_report.json
+      hash: md5
+      md5: 192a4e5159faf104b299159462ae47f5
+      size: 567
+    - path: src/ecc_rag/data_pipeline/chunking.py
+      hash: md5
+      md5: 83e693abcb82d4eba07c49b6fc5dca23
+      size: 6980
+    params:
+      configs/rag.yaml:
+        chunking:
+          strategy: article_ctx
+          params:
+            include_english: true
+            min_chars_to_split: 600
+    outs:
+    - path: data/processed/chunks.jsonl
+      hash: md5
+      md5: 971e66b85ff24b9bffb5cc01176971cb
+      size: 2477014
+  index:
+    cmd: python -m ecc_rag.rag.index --chunks data/processed/chunks.jsonl 
+      --articles data/processed/articles.jsonl --index-dir data/index
+    deps:
+    - path: data/processed/articles.jsonl
+      hash: md5
+      md5: 8137e1c726d9e59da0808b4f533e42e9
+      size: 2439373
+    - path: data/processed/chunks.jsonl
+      hash: md5
+      md5: 971e66b85ff24b9bffb5cc01176971cb
+      size: 2477014
+    - path: src/ecc_rag/rag/embeddings.py
+      hash: md5
+      md5: 62e0efc17ca9090248356851a498d018
+      size: 9736
+    - path: src/ecc_rag/rag/index.py
+      hash: md5
+      md5: 796266dd5e3386c7e81b9d1885fd7dfd
+      size: 7445
+    - path: src/ecc_rag/rag/vector_store.py
+      hash: md5
+      md5: c7d3719e2af26c9df56f95fffa91f3d4
+      size: 5731
+    params:
+      configs/rag.yaml:
+        chunking:
+          strategy: article_ctx
+          params:
+            include_english: true
+            min_chars_to_split: 600
+        embedding:
+          provider: lsa
+          lsa:
+            n_components: 256
+            ngram_range:
+            - 2
+            - 5
+            min_df: 2
+          gemini:
+            model: gemini-embedding-001
+            dim: 768
+          sentence_transformers:
+            model: intfloat/multilingual-e5-base
+            query_prefix: 'query: '
+            doc_prefix: 'passage: '
+    outs:
+    - path: data/index
+      hash: md5
+      md5: bc1aa42837f73ab685aab001a6ac73b3.dir
+      size: 75068824
+      nfiles: 5
+  reference_baseline:
+    cmd: python baselines/reference_pipeline/run_reference.py data/raw/Law.pdf 
+      data/baselines/reference_civil_code_ready.json
+    deps:
+    - path: baselines/reference_pipeline
+      hash: md5
+      md5: 0f40b205b1128d359443a89a9c4b65f8.dir
+      size: 20903
+      nfiles: 4
+    - path: data/raw/Law.pdf
+      hash: md5
+      md5: 5086ef5f16f15d856278db943e58e948
+      size: 2599703
+    outs:
+    - path: data/baselines/reference_civil_code_ready.json
+      hash: md5
+      md5: 5b190e3abd2b62368a33e921c701fd07
+      size: 1183811
+  benchmark:
+    cmd: python -m ecc_rag.evaluation.benchmark --reference-corpus 
+      data/baselines/reference_civil_code_ready.json --output 
+      reports/retrieval_benchmark.json --mlflow-uri sqlite:///mlflow.db
+    deps:
+    - path: data/baselines/reference_civil_code_ready.json
+      hash: md5
+      md5: 5b190e3abd2b62368a33e921c701fd07
+      size: 1183811
+    - path: data/evaluation/golden_v1.yaml
+      hash: md5
+      md5: c582e10376353893e844584335cce5bd
+      size: 122697
+    - path: data/processed/articles.jsonl
+      hash: md5
+      md5: 8137e1c726d9e59da0808b4f533e42e9
+      size: 2439373
+    - path: src/ecc_rag/data_pipeline/chunking.py
+      hash: md5
+      md5: 83e693abcb82d4eba07c49b6fc5dca23
+      size: 6980
+    - path: src/ecc_rag/evaluation/benchmark.py
+      hash: md5
+      md5: 90a72467e9a0003ff9a9cfd5f6b6794e
+      size: 14155
+    - path: src/ecc_rag/rag/query.py
+      hash: md5
+      md5: f585f34275256cfe43ac46cf134903c0
+      size: 4119
+    - path: src/ecc_rag/rag/retriever.py
+      hash: md5
+      md5: c665844179f7aabed6e7b63b27555bf4
+      size: 9218
+    params:
+      configs/rag.yaml:
+        embedding:
+          provider: lsa
+          lsa:
+            n_components: 256
+            ngram_range:
+            - 2
+            - 5
+            min_df: 2
+          gemini:
+            model: gemini-embedding-001
+            dim: 768
+          sentence_transformers:
+            model: intfloat/multilingual-e5-base
+            query_prefix: 'query: '
+            doc_prefix: 'passage: '
+        retrieval:
+          method: hybrid
+          hybrid_components:
+          - bm25
+          - tfidf
+          - dense
+          rrf_k: 60
+          rrf_weights:
+            bm25: 1.0
+            tfidf: 1.0
+            dense: 1.0
+          candidate_k: 50
+          top_k: 5
+          bm25_k1: 1.5
+          bm25_b: 0.75
+          use_dialect_expansion: false
+          strip_question_frame: true
+          honor_explicit_refs: true
+    outs:
+    - path: reports/retrieval_benchmark.json
+      hash: md5
+      md5: a9f46f43facb6516e45cf05b529e1ed1
+      size: 87810
+    - path: reports/retrieval_benchmark_rows.json
+      hash: md5
+      md5: 5cfa81e2dfc2284b2cc74117fcfd2822
+      size: 2168463
+  evaluate:
+    cmd: python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db
+    deps:
+    - path: data/evaluation/golden_v1.yaml
+      hash: md5
+      md5: c582e10376353893e844584335cce5bd
+      size: 122697
+    - path: data/index
+      hash: md5
+      md5: bc1aa42837f73ab685aab001a6ac73b3.dir
+      size: 75068824
+      nfiles: 5
+    - path: data/processed/chunks.jsonl
+      hash: md5
+      md5: 971e66b85ff24b9bffb5cc01176971cb
+      size: 2477014
+    - path: src/ecc_rag
+      hash: md5
+      md5: 3116a4d8788be65188c89ff2bce6f755.dir
+      size: 206272
+      nfiles: 37
+    params:
+      configs/rag.yaml:
+        evidence:
+          min_top_tfidf: 0.04
+          min_query_coverage: 0.1
+          coverage_top_n: 3
+        retrieval:
+          method: hybrid
+          hybrid_components:
+          - bm25
+          - tfidf
+          - dense
+          rrf_k: 60
+          rrf_weights:
+            bm25: 1.0
+            tfidf: 1.0
+            dense: 1.0
+          candidate_k: 50
+          top_k: 5
+          bm25_k1: 1.5
+          bm25_b: 0.75
+          use_dialect_expansion: false
+          strip_question_frame: true
+          honor_explicit_refs: true
+        scope:
+          min_tfidf_for_in_scope: 0.1
+          min_coverage_for_in_scope: 0.1
+          min_idf_single_term: 2.5
+          other_law_override_coverage: 0.8
+          other_law_override_tfidf: 0.35
+    outs:
+    - path: reports/eval_summary.json
+      hash: md5
+      md5: bb4077e68e3f3ec27ef8acdc77ca1ffc
+      size: 1486
+    - path: reports/gates_eval.json
+      hash: md5
+      md5: 25b22d8ce564eb4102ebdf1c5cb4b6b1
+      size: 58155
+    - path: reports/retrieval_eval.json
+      hash: md5
+      md5: 1c3a75f94112bc23ae4dd749475b197b
+      size: 132129

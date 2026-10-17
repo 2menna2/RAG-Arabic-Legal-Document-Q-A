@@ -1,0 +1,12 @@
+{
+  "objective": "max dev balanced accuracy s.t. dev proceed-rate >= 0.90 (ties: higher proceed-rate, then grid order)",
+  "best": {
+    "min_tfidf_for_in_scope": 0.1,
+    "min_coverage_for_in_scope": 0.1,
+    "min_top_tfidf": 0.04,
+    "min_query_coverage": 0.1
+  },
+  "dev_balanced_accuracy": 0.9952,
+  "dev_proceed_rate": 0.9762,
+  "trials": 1680
+}
