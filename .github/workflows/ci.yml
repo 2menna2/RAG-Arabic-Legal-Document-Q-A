@@ -30,7 +30,7 @@ jobs:
   lint-typecheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv sync --frozen --extra dev --python ${{ env.PYTHON_VERSION }}
@@ -41,7 +41,7 @@ jobs:
   unit-tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv sync --frozen --extra dev --extra pipeline --python ${{ env.PYTHON_VERSION }}
@@ -53,7 +53,7 @@ jobs:
   dependency-audit:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v5
         with: {version: "${{ env.UV_VERSION }}"}
       - run: uv export --frozen --no-dev --no-hashes --no-emit-project > requirements-runtime.txt
@@ -67,7 +67,7 @@ jobs:
     outputs:
       corpus: ${{ steps.corpus.outputs.source }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Locate the corpus
         id: corpus
         env:
@@ -155,7 +155,7 @@ jobs:
     steps:
       - if: env.HAS_CORPUS != 'true'
         run: echo "::warning::No corpus available — image not built."
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.HAS_CORPUS == 'true'
       - uses: actions/download-artifact@v4
         if: env.HAS_CORPUS == 'true'
