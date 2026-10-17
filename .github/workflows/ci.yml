@@ -151,7 +151,7 @@ jobs:
         if: env.HAS_DVC == 'true'
       - name: Build image (tag = commit SHA)
         if: env.HAS_DVC == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: docker/Dockerfile
