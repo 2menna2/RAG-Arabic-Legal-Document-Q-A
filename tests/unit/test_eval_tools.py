@@ -78,6 +78,19 @@ class _RateLimited(Exception):
         }
 
 
+def test_provider_error_detail_names_the_exhausted_quota():
+    from ecc_rag.rag.llm import provider_error_detail
+
+    exc = _RateLimited("31s")
+    exc.details["error"]["details"].append(
+        {
+            "@type": "type.googleapis.com/google.rpc.QuotaFailure",
+            "violations": [{"quotaMetric": "m", "quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier"}],
+        }
+    )
+    assert "quota=GenerateRequestsPerDayPerProjectPerModel-FreeTier" in provider_error_detail(exc, limit=10)
+
+
 def test_provider_retry_delay_is_parsed():
     from ecc_rag.rag.llm import provider_retry_delay_s
 

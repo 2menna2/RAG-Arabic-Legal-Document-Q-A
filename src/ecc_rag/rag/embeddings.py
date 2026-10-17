@@ -18,7 +18,7 @@ from __future__ import annotations
 import logging
 import time
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import numpy as np
 
@@ -163,7 +163,7 @@ class GeminiEmbedder:
                 try:
                     res = self._client.models.embed_content(
                         model=self.model,
-                        contents=list(part),  # type: ignore[arg-type]
+                        contents=cast(Any, list(part)),  # SDK's ContentListUnion varies by version
                         config=self._types.EmbedContentConfig(task_type=task, output_dimensionality=self.dim),
                     )
                     out.extend(list(e.values or []) for e in (res.embeddings or []))

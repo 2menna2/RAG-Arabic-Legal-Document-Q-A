@@ -41,7 +41,7 @@ uv sync --frozen --extra dev --extra pipeline --extra mlops
 
 ## المرحلة 2 — ملف القانون وبناء البيانات والفهرس
 
-1. حط ملف القانون اللي معاك بالاسم ده بالظبط: `data/raw/Law.pdf`
+1. ملف القانون موجود في الريبو في `data/raw/Law.pdf`. لو نزّلت المشروع من zip قديم مافيهوش، حطه في المكان ده بالاسم ده بالظبط
 2. اتأكد إنه نفس الملف (لازم الـ MD5 يطلع `5086ef5f16f15d856278db943e58e948`):
    ```powershell
    Get-FileHash data\raw\Law.pdf -Algorithm MD5        # Windows
@@ -64,7 +64,7 @@ uv sync --frozen --extra dev --extra pipeline --extra mlops
    ```bash
    uv run pytest -q
    ```
-   النتيجة المتوقعة: `119 passed, 1 skipped` (اللي اتخطى ده اختبار Gemini الحي، وهيشتغل لما تحط المفتاح).
+   النتيجة المتوقعة: `126 passed, 1 skipped` (اللي اتخطى ده اختبار Gemini الحي، وهيشتغل لما تحط المفتاح).
 
 ## المرحلة 3 — مفتاح Gemini (مجاني)
 

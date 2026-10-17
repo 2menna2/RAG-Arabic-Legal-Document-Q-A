@@ -109,7 +109,9 @@ def main() -> None:
     }
     d = ROOT / "reports/loadtest"
     d.mkdir(parents=True, exist_ok=True)
-    (d / f"{out['run_at'][:19].replace(':', '')}_{args.endpoint}.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+    (d / f"{out['run_at'][:19].replace(':', '')}_{args.endpoint}.json").write_text(
+        json.dumps(out, indent=2), encoding="utf-8", newline="\n"
+    )
     print(json.dumps(out, indent=2))
 
 

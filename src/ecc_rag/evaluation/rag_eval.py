@@ -141,7 +141,7 @@ def run(
         "rows": rows,
     }
     reports = PROJECT_ROOT / "reports"
-    (reports / "rag_eval.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    (reports / "rag_eval.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
     export_review_sheet(rows, reports / "human_review" / f"review_sheet_{out['run_at'][:10]}.csv", sample_n, seed)
     return out
 

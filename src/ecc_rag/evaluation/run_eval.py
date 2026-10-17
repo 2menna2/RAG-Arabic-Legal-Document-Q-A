@@ -72,10 +72,12 @@ def run(mlflow_uri: str | None, experiment: str, reports: Path) -> dict[str, Any
     (reports / "retrieval_eval.json").write_text(
         json.dumps({**meta, "metrics": retrieval, "by_style": by_style, "by_type": by_type, "rows": rows}, ensure_ascii=False, indent=1),
         encoding="utf-8",
+        newline="\n",
     )
     (reports / "gates_eval.json").write_text(
         json.dumps({**meta, "thresholds": {**cfg["scope"], **cfg["evidence"]}, **gates, "rows": gate_rows}, ensure_ascii=False, indent=1),
         encoding="utf-8",
+        newline="\n",
     )
     keep = ["recall@1", "recall@5", "recall@10", "mrr", "ndcg@5", "precision@5", "hit@5"]
     summary = {
@@ -86,7 +88,7 @@ def run(mlflow_uri: str | None, experiment: str, reports: Path) -> dict[str, Any
             for s in ("dev", "test")
         },
     }
-    (reports / "eval_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8")
+    (reports / "eval_summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
 
     if mlflow_uri:
         import mlflow

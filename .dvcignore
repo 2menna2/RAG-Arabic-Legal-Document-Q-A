@@ -2,3 +2,6 @@
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
 **/__pycache__
+
+# volatile build provenance (commit, time) inside the index output: not part of its content hash
+/data/index/build_info.json

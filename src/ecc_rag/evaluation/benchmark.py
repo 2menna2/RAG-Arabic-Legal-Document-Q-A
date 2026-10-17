@@ -227,7 +227,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                     for mk, mv in s.items():
                         mlflow.log_metric(f"{split}_{mk.replace('@', '_at_')}", float(mv))
                 art = Path(td) / f"{name}.json"
-                art.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+                art.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8", newline="\n")
                 mlflow.log_artifact(str(art), artifact_path="per_question")
             logger.info(
                 "%-60s dev R@5=%.3f MRR=%.3f | test R@5=%.3f",
@@ -260,9 +260,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "results": [{k: v for k, v in r.items() if k != "rows"} for r in results],
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     (args.output.parent / "retrieval_benchmark_rows.json").write_text(
-        json.dumps({r["name"]: r["rows"] for r in results}, ensure_ascii=False), encoding="utf-8"
+        json.dumps({r["name"]: r["rows"] for r in results}, ensure_ascii=False), encoding="utf-8", newline="\n"
     )
     write_markdown(out, args.output.with_suffix(".md"))
     return out
@@ -293,7 +293,7 @@ def write_markdown(out: dict[str, Any], path: Path) -> None:
             f"| {r['name']} | {bs['msa'].get('recall@5', 0):.3f} (n={bs['msa'].get('n', 0)}) | {bs['egyptian'].get('recall@5', 0):.3f} (n={bs['egyptian'].get('n', 0)}) | {bs['english'].get('recall@5', 0):.3f} (n={bs['english'].get('n', 0)}) |"
         )
     lines += ["", "## Not run", ""] + [f"- {n['config']}: {n['reason']}" for n in out["not_run"]]
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
 
 def main() -> None:

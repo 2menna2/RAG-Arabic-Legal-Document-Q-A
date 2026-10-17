@@ -127,7 +127,7 @@ scripts/demo_gate_catches_regression.sh   # يثبت أن الـ gate يرفض �
 
 | البند | النتيجة |
 |---|---|
-| pytest (unit + integration + e2e) | **119 passed, 1 skipped** (اختبار Gemini الحي يُتخطى لعدم وجود مفتاح) |
+| pytest (unit + integration + e2e) | **126 passed, 1 skipped** (اختبار Gemini الحي يُتخطى لعدم وجود مفتاح) |
 | coverage | 72% إجمالي، 68% لـ unit فقط (حد الـ CI 60%) |
 | ruff / mypy | نظيف |
 | actionlint (workflows) | نجح |

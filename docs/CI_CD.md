@@ -9,11 +9,12 @@
 | `lint-typecheck` | `ruff check`, `ruff format --check`, `mypy` | any lint/type error |
 | `unit-tests` | `pytest tests/unit` with coverage ≥ 60 % (synthetic fixtures) | any failure / coverage drop |
 | `dependency-audit` | `pip-audit` on the locked runtime dependencies | known vulnerability |
-| `data-quality-gate` | `dvc pull` the PDF → `dvc repro index` (extract, parse, **validate**, chunk, index) → checks `dvc.lock` unchanged → integration + e2e tests on the real corpus → `run_eval` → **quality gate** | validation error, non-reproducible outputs, test failure, metric below floor or regression vs `reports/baseline/` |
+| `data-quality-gate` | use the committed `data/raw/Law.pdf` (or `dvc pull` it if only a `.dvc` pointer is committed) → `dvc repro index` (extract, parse, **validate**, chunk, index) → checks `dvc.lock` unchanged → integration + e2e tests on the real corpus → `run_eval` → **quality gate** | validation error, non-reproducible outputs, test failure, metric below floor or regression vs `reports/baseline/` |
 | `docker-build-scan-smoke` | build image tagged with the commit SHA, **Trivy** scan (fixable HIGH/CRITICAL), run read-only container, smoke test, assert non-root and no `.env` | build error, vulnerability, smoke failure |
 
-Without the DVC secrets (e.g. PRs from forks) the data-dependent jobs print a warning and are skipped — CI **never**
-generates synthetic data to make the gate pass. Make `data-quality-gate` a required status check on `main`.
+The corpus comes from the committed PDF; DVC secrets are only needed if the PDF is removed from Git. Without any
+corpus the data-dependent jobs print a warning and are skipped — CI **never** generates synthetic data to make the
+gate pass. Make `data-quality-gate` a required status check on `main`.
 
 ### `.github/workflows/release.yml` — tag `v*` or manual
 

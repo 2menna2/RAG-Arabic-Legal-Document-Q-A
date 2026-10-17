@@ -159,7 +159,7 @@ def main() -> None:
     a("- Negative classes are small (4–14 items per class per split): decision-layer rates have wide uncertainty.")
     a("- The dense component is LSA (classical); neural embeddings and the cross-encoder could not be benchmarked offline.")
     a("- Egyptian-dialect scenario questions are the weakest category (see by-style table).")
-    (R / "EVALUATION_REPORT.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    (R / "EVALUATION_REPORT.md").write_text("\n".join(L) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {R / 'EVALUATION_REPORT.md'}")
 
 

@@ -47,6 +47,19 @@ def provider_error_detail(exc: BaseException, limit: int = 300) -> str:
         val = getattr(exc, attr, None)
         if val not in (None, ""):
             parts.append(f"{attr}={val}")
+    # google.rpc.QuotaFailure says WHICH quota was hit (per-minute vs per-day): keep it even if the text is cut
+    details = getattr(exc, "details", None)
+    err = details.get("error", details) if isinstance(details, dict) else None
+    items = err.get("details", []) if isinstance(err, dict) else []
+    quotas = [
+        str(v.get("quotaId") or v.get("quotaMetric"))
+        for item in (items if isinstance(items, list) else [])
+        if isinstance(item, dict) and str(item.get("@type", "")).endswith("QuotaFailure")
+        for v in item.get("violations", [])
+        if isinstance(v, dict) and (v.get("quotaId") or v.get("quotaMetric"))
+    ]
+    if quotas:
+        parts.append(f"quota={','.join(sorted(set(quotas)))}")
     message = getattr(exc, "message", None) or str(exc)
     parts.append(" ".join(str(message).split())[:limit])
     return scrub(" ".join(parts))

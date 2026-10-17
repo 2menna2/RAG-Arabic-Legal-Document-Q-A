@@ -41,6 +41,18 @@ def _close_embedded() -> None:
     _EMBEDDED.clear()
 
 
+def release_embedded(path: str | Path) -> None:
+    """Close and forget this process's embedded client for `path` (before deleting/rebuilding that folder)."""
+    key = str(Path(path).resolve())
+    with _EMBEDDED_GUARD:
+        entry = _EMBEDDED.pop(key, None)
+    if entry is not None:
+        try:
+            entry[0].close()  # type: ignore[attr-defined]
+        except Exception as exc:  # noqa: BLE001 — best effort, the folder is rebuilt next
+            logger.debug("closing embedded Qdrant at %s failed: %s", key, exc)
+
+
 class QdrantStore:
     def __init__(self, url: str | None = None, path: Path | None = None, api_key: str | None = None, timeout_s: float = 5.0):
         from qdrant_client import QdrantClient

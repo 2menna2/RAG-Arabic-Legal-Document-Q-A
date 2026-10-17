@@ -14,4 +14,6 @@ source:
   code_effective_date: "1949-10-15"
   english_translation: "unofficial translation of unknown authorship included in the source; rights unknown"
   license: unknown
-  redistribution: "Do NOT commit the PDF or derived full-text corpus to Git. Track with DVC and a private remote."
+  # 2026-10-17: the project owner chose to commit the PDF to the GitHub repository (rights not confirmed; see
+  # docs/DATA_SOURCES.md). Derived full-text data (data/processed, data/index) stays out of Git.
+  redistribution: "PDF committed to Git by owner decision; derived corpus not committed. Rights unconfirmed."

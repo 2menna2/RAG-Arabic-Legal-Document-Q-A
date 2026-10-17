@@ -275,7 +275,7 @@ def main() -> None:
     records, issues = build_records(builders, source)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as f:
+    with args.output.open("w", encoding="utf-8", newline="\n") as f:
         for r in records:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     flag_counts: dict[str, int] = {}
@@ -291,7 +291,7 @@ def main() -> None:
         "quality_flag_counts": flag_counts,
     }
     args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     logger.info("wrote %d article records; flags=%s; issues=%d", len(records), flag_counts, len(issues))
 
 

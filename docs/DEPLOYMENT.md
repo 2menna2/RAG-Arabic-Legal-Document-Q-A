@@ -37,7 +37,7 @@ Copy `.env.example` → `.env` (never committed). Essential variables:
 git clone <repo> ecc-rag && cd ecc-rag
 make setup && source .venv/bin/activate              # uv sync --frozen
 dvc remote add -d --local storage <remote-url> && dvc pull   # or place Law.pdf + `dvc repro index`
-make test                                            # 120 tests (1 skipped without GEMINI_API_KEY)
+make test                                            # 127 tests (1 skipped without GEMINI_API_KEY)
 make serve                                           # local, embedded index
 curl -s localhost:8000/health && curl -s localhost:8000/ready
 ```

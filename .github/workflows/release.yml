@@ -2,7 +2,7 @@
 # Gates: the same lint/test/data/quality-gate jobs as CI must pass first (reusable workflow call),
 # then the image is pushed to GHCR with immutable tags (git SHA + version; `latest` is never relied on),
 # then deployment to Cloud Run waits for manual approval on the `production` environment.
-# Required secrets: DVC_REMOTE_URL (+ storage creds, see ci.yml), GCP_WIF_PROVIDER, GCP_DEPLOY_SA,
+# Required secrets: (corpus: committed data/raw/Law.pdf, or DVC_REMOTE_URL + creds, see ci.yml), GCP_WIF_PROVIDER, GCP_DEPLOY_SA,
 #                   GCP_PROJECT, GCP_REGION; GEMINI_API_KEY lives in GCP Secret Manager as `gemini-api-key`.
 name: release
 

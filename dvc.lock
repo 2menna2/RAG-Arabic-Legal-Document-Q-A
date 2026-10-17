@@ -10,8 +10,8 @@ stages:
       size: 2599703
     - path: src/ecc_rag/data_pipeline/pdf_extract.py
       hash: md5
-      md5: eee71592e3124815fafd2affc8ce9586
-      size: 10043
+      md5: 800a27abe99b879aca24fd80414fa471
+      size: 10057
     outs:
     - path: data/interim/rows.jsonl
       hash: md5
@@ -24,8 +24,8 @@ stages:
     deps:
     - path: configs/source.yaml
       hash: md5
-      md5: 95505deb073357f9f61b944045ce8b6f
-      size: 1295
+      md5: 7b899018011f98b9aa6f6341e69aca0a
+      size: 1497
     - path: data/interim/rows.jsonl
       hash: md5
       md5: 3001f686e7d381013506bc00c8a1b511
@@ -36,8 +36,8 @@ stages:
       size: 5904
     - path: src/ecc_rag/data_pipeline/parse_articles.py
       hash: md5
-      md5: 87f0050bdb499e4d86f73c17ff4c6021
-      size: 12818
+      md5: ecc85a22f4db8004606905644bc9e9ea
+      size: 12846
     - path: src/ecc_rag/data_pipeline/schema.py
       hash: md5
       md5: 9a73403b80ae09e257265d7cc2991f18
@@ -66,8 +66,8 @@ stages:
       size: 2439373
     - path: src/ecc_rag/data_pipeline/validate.py
       hash: md5
-      md5: d23f9d098cbd5bfbfad2a7ba81613437
-      size: 7270
+      md5: d70ef595631b4b84d16f750a6efdb374
+      size: 7284
     outs:
     - path: reports/data_quality/validation_report.json
       hash: md5
@@ -87,8 +87,8 @@ stages:
       size: 567
     - path: src/ecc_rag/data_pipeline/chunking.py
       hash: md5
-      md5: 83e693abcb82d4eba07c49b6fc5dca23
-      size: 6980
+      md5: 17c5b4b9e05942be817d25fe10545466
+      size: 6994
     params:
       configs/rag.yaml:
         chunking:
@@ -115,16 +115,16 @@ stages:
       size: 2477014
     - path: src/ecc_rag/rag/embeddings.py
       hash: md5
-      md5: 62e0efc17ca9090248356851a498d018
-      size: 9736
+      md5: 57c5100e0a80d40184ffc308827fa8b1
+      size: 9771
     - path: src/ecc_rag/rag/index.py
       hash: md5
-      md5: 796266dd5e3386c7e81b9d1885fd7dfd
-      size: 7445
+      md5: 58d7e17e3335c2d1beaaabff5e917acf
+      size: 9250
     - path: src/ecc_rag/rag/vector_store.py
       hash: md5
-      md5: c7d3719e2af26c9df56f95fffa91f3d4
-      size: 5731
+      md5: 144eae959e3ebde6ce94a458202adf67
+      size: 6575
     params:
       configs/rag.yaml:
         chunking:
@@ -150,8 +150,8 @@ stages:
     outs:
     - path: data/index
       hash: md5
-      md5: bc1aa42837f73ab685aab001a6ac73b3.dir
-      size: 75068824
+      md5: acdc5fdc88779847d76b439eb38c217e.dir
+      size: 75068719
       nfiles: 5
   reference_baseline:
     cmd: python baselines/reference_pipeline/run_reference.py data/raw/Law.pdf 
@@ -159,8 +159,8 @@ stages:
     deps:
     - path: baselines/reference_pipeline
       hash: md5
-      md5: 0f40b205b1128d359443a89a9c4b65f8.dir
-      size: 20903
+      md5: 1abc3209a2704845bd46bec0f39f69e6.dir
+      size: 20931
       nfiles: 4
     - path: data/raw/Law.pdf
       hash: md5
@@ -190,12 +190,12 @@ stages:
       size: 2439373
     - path: src/ecc_rag/data_pipeline/chunking.py
       hash: md5
-      md5: 83e693abcb82d4eba07c49b6fc5dca23
-      size: 6980
+      md5: 17c5b4b9e05942be817d25fe10545466
+      size: 6994
     - path: src/ecc_rag/evaluation/benchmark.py
       hash: md5
-      md5: 90a72467e9a0003ff9a9cfd5f6b6794e
-      size: 14155
+      md5: 37ce1daeeb29f8e642ff3d01500456e1
+      size: 14211
     - path: src/ecc_rag/rag/query.py
       hash: md5
       md5: f585f34275256cfe43ac46cf134903c0
@@ -242,12 +242,12 @@ stages:
     outs:
     - path: reports/retrieval_benchmark.json
       hash: md5
-      md5: a9f46f43facb6516e45cf05b529e1ed1
-      size: 87810
+      md5: 2bbec7cc101412dfe85167ebc9f94020
+      size: 87797
     - path: reports/retrieval_benchmark_rows.json
       hash: md5
-      md5: 5cfa81e2dfc2284b2cc74117fcfd2822
-      size: 2168463
+      md5: 865c2c5f9c8e9c1972bd318427429ec1
+      size: 2168376
   evaluate:
     cmd: python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db
     deps:
@@ -257,8 +257,8 @@ stages:
       size: 122697
     - path: data/index
       hash: md5
-      md5: bc1aa42837f73ab685aab001a6ac73b3.dir
-      size: 75068824
+      md5: acdc5fdc88779847d76b439eb38c217e.dir
+      size: 75068719
       nfiles: 5
     - path: data/processed/chunks.jsonl
       hash: md5
@@ -266,8 +266,8 @@ stages:
       size: 2477014
     - path: src/ecc_rag
       hash: md5
-      md5: 3116a4d8788be65188c89ff2bce6f755.dir
-      size: 206272
+      md5: 5514495c04a522ef78cafd232fa366c5.dir
+      size: 216488
       nfiles: 37
     params:
       configs/rag.yaml:
@@ -302,13 +302,13 @@ stages:
     outs:
     - path: reports/eval_summary.json
       hash: md5
-      md5: bb4077e68e3f3ec27ef8acdc77ca1ffc
+      md5: 2ed98355fcf75741d90c036ab2ed6fa4
       size: 1486
     - path: reports/gates_eval.json
       hash: md5
-      md5: 25b22d8ce564eb4102ebdf1c5cb4b6b1
+      md5: a99aad16de60e9135f52c9b5b4611657
       size: 58155
     - path: reports/retrieval_eval.json
       hash: md5
-      md5: 1c3a75f94112bc23ae4dd749475b197b
-      size: 132129
+      md5: d52fb2fdbe4b2134e48bd5726fda45c8
+      size: 132138

@@ -152,7 +152,7 @@ def main() -> None:
     known = yaml.safe_load(args.known_issues.read_text(encoding="utf-8"))
     report = validate(records, known, args.pdf)
     args.report.parent.mkdir(parents=True, exist_ok=True)
-    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.report.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     for e in report["errors"][:30]:
         logger.error(e)
     logger.info("validation %s — %s", "PASSED" if report["passed"] else "FAILED", report["stats"])

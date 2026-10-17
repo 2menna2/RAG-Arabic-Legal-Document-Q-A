@@ -29,7 +29,7 @@ a legal-sounding answer.
 
 ```mermaid
 flowchart LR
-  PDF[(Law.pdf<br/>DVC)] --> X[extract<br/>ligature + digit repair] --> P[parse<br/>article / heading / repeal note] --> V{validate<br/>schema, gaps, dupes,<br/>artefacts}
+  PDF[(Law.pdf<br/>Git)] --> X[extract<br/>ligature + digit repair] --> P[parse<br/>article / heading / repeal note] --> V{validate<br/>schema, gaps, dupes,<br/>artefacts}
   V -->|pass| C[chunk<br/>article_ctx] --> I[(index<br/>Qdrant + manifest)]
   Q[question] --> G1[input checks +<br/>injection detection] --> R[hybrid retrieval<br/>BM25 + char-TF-IDF + dense, RRF]
   I --> R --> S{scope +<br/>evidence gate} -->|sufficient| LLM[Gemini<br/>JSON: answer + claims + quotes] --> CV{citation<br/>validation} -->|valid| A[answered + sources]
@@ -53,8 +53,8 @@ flowchart LR
 
 ## Quickstart (local)
 
-Requirements: Python 3.12, [uv](https://docs.astral.sh/uv/) 0.11, Git, DVC access to the data remote (or the source PDF, see
-[`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md)), a Gemini API key for `/ask`.
+Requirements: Python 3.12, [uv](https://docs.astral.sh/uv/) 0.11+, Git, a Gemini API key for `/ask`. The source PDF is in
+the repository (`data/raw/Law.pdf`, see [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for provenance and rights).
 
 ```bash
 git clone <repo-url> ecc-rag && cd ecc-rag
@@ -62,13 +62,10 @@ make setup                                   # uv sync --frozen (dev + pipeline 
 source .venv/bin/activate
 cp .env.example .env                         # set GEMINI_API_KEY (and nothing secret anywhere else)
 
-# data: either pull everything the pipeline produced …
-dvc remote add -d --local storage <your-remote-url>   # e.g. s3://bucket/ecc-rag
-dvc pull
-# … or rebuild from the PDF (place it at data/raw/Law.pdf; sha256 in configs/source.yaml)
+# data: rebuild everything from the committed PDF (sha256 checked against configs/source.yaml)
 dvc repro index                              # extract → parse → validate → chunk → index
 
-make test                                    # unit + integration + e2e (120 tests: 119 pass, 1 skipped without GEMINI_API_KEY)
+make test                                    # unit + integration + e2e (127 tests: 126 pass, 1 skipped without GEMINI_API_KEY)
 make eval                                    # offline evaluation → reports/*.json + MLflow run
 make gate                                    # quality gate vs reports/baseline/
 make serve                                   # http://127.0.0.1:8000/docs

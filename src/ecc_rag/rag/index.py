@@ -17,8 +17,11 @@ import argparse
 import hashlib
 import json
 import logging
+import os
 import platform
+import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,7 +29,7 @@ from typing import Any
 
 from ecc_rag.config import Settings, config_hash, get_settings, load_rag_config
 from ecc_rag.rag.embeddings import Embedder, LsaEmbedder, make_embedder
-from ecc_rag.rag.vector_store import QdrantStore
+from ecc_rag.rag.vector_store import QdrantStore, release_embedded
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +115,12 @@ def build_index(chunks_path: Path, articles_path: Path, index_dir: Path, cfg: di
     }
     coll = collection_name(core)
     s = get_settings()
+    if s.qdrant_url is None and s.qdrant_path is None:
+        # Rebuild the embedded store from an empty folder: re-creating a collection inside an existing SQLite file
+        # leaves different page layouts, i.e. different bytes (and DVC hashes) for the same content.
+        default_path = index_dir / "qdrant"
+        release_embedded(default_path)
+        shutil.rmtree(default_path, ignore_errors=True)
     store = QdrantStore(
         url=s.qdrant_url,
         path=None if s.qdrant_url else (s.qdrant_path or index_dir / "qdrant"),
@@ -129,13 +138,15 @@ def build_index(chunks_path: Path, articles_path: Path, index_dir: Path, cfg: di
         "n_points": info["points"],
         "n_chunks": len(chunks),
         "store_mode": store.mode,
-        "git_commit": git_commit(),
         "libraries": _lib_versions(),
-        "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
     }
+    # Volatile provenance lives outside the DVC-hashed content (see .dvcignore) so identical inputs give identical
+    # index bytes; the manifest above is a pure function of corpus, chunks, config and locked library versions.
+    build_info = {"git_commit": git_commit(), "created_at": datetime.now(UTC).isoformat(timespec="seconds")}
     if info["points"] != len(chunks):
         raise IndexIncompatibleError(f"Qdrant has {info['points']} points, expected {len(chunks)}")
-    (index_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (index_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
+    (index_dir / "build_info.json").write_text(json.dumps(build_info, indent=2), encoding="utf-8", newline="\n")
     logger.info("index built: collection=%s points=%d dim=%d", coll, info["points"], embedder.dim)
     return manifest
 
@@ -189,7 +200,25 @@ def load_index(
     return LoadedIndex(manifest, chunks, embedder, store)
 
 
+DETERMINISTIC_HASH_SEED = "0"
+
+
+def _ensure_fixed_hash_seed() -> None:
+    """Re-run this CLI with PYTHONHASHSEED fixed.
+
+    The embedded Qdrant store pickles point objects; pickled sets follow the per-process string-hash order, so with
+    hash randomisation the SQLite bytes (and the DVC hash of data/index) differ on every build although vectors and
+    payloads are identical (verified). A fixed seed makes the bytes identical across runs and environments. Done
+    here rather than in dvc.yaml because `VAR=value cmd` does not work in Windows shells.
+    """
+    if os.environ.get("PYTHONHASHSEED") == DETERMINISTIC_HASH_SEED:
+        return
+    env = {**os.environ, "PYTHONHASHSEED": DETERMINISTIC_HASH_SEED}
+    raise SystemExit(subprocess.call([sys.executable, "-m", "ecc_rag.rag.index", *sys.argv[1:]], env=env))
+
+
 def main() -> None:
+    _ensure_fixed_hash_seed()
     parser = argparse.ArgumentParser(description="Build the vector index")
     parser.add_argument("--chunks", type=Path, default=Path("data/processed/chunks.jsonl"))
     parser.add_argument("--articles", type=Path, default=Path("data/processed/articles.jsonl"))

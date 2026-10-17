@@ -172,7 +172,7 @@ def main() -> None:
     params = cfg.get("params", {})
     chunks = build_chunks(load_articles(args.input), strategy, params)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as f:
+    with args.output.open("w", encoding="utf-8", newline="\n") as f:
         for c in chunks:
             f.write(json.dumps(c, ensure_ascii=False) + "\n")
     logger.info("strategy=%s params_hash=%s chunks=%d", strategy, config_hash(params), len(chunks))

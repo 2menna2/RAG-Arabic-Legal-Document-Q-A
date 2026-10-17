@@ -1,9 +1,24 @@
-# Keeps GitHub Actions (pin to commit SHAs on update) and Python dependencies current.
+# Weekly dependency updates, grouped into a few PRs (CI must pass before merging any of them).
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule: {interval: weekly}
+    groups:
+      github-actions:
+        patterns: ["*"]
+
   - package-ecosystem: uv
     directory: /
     schedule: {interval: weekly}
+    open-pull-requests-limit: 3
+    groups:
+      python-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # ragas 0.3.9 only imports with langchain-community<0.4 (verified); upgrade both together, deliberately
+      - dependency-name: ragas
+      - dependency-name: langchain-community
+        versions: [">=0.4"]
+      # pinned on purpose: PDF extraction output (and thus the corpus hash) depends on the exact version
+      - dependency-name: pymupdf

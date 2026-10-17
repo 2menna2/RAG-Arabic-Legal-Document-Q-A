@@ -133,7 +133,7 @@ def run_cleanup(input_path: str, output_path: str):
     cleaned_records = [art_dict[k] for k in sorted(art_dict.keys()) if k <= 1149]
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(output_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(cleaned_records, f, ensure_ascii=False, indent=2)
 
     print(f"Cleaned dataset saved successfully to: {output_path}")

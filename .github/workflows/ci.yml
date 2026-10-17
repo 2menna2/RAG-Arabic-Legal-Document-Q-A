@@ -1,5 +1,6 @@
 # Pull-request / main-branch validation. Nothing here deploys.
-# Required repository secrets for the data-dependent jobs (see docs/CI_CD.md):
+# Corpus for the data-dependent jobs: data/raw/Law.pdf committed to the repository (used as is), otherwise a DVC
+# remote configured with these repository secrets (see docs/CI_CD.md):
 #   DVC_REMOTE_URL   gdrive://<folder-id> (free) | s3://bucket/path | gs://bucket/path | azure://container/path
 #   + credentials for that remote:
 #     gdrive: GDRIVE_CREDENTIALS_DATA (service-account JSON; share the Drive folder with it)
@@ -59,24 +60,32 @@ jobs:
       - run: uvx pip-audit==2.7.3 -r requirements-runtime.txt --strict
 
   data-quality-gate:
-    # Needs the real corpus from the DVC remote. Integration/e2e tests + evaluation + quality gate.
+    # Needs the real corpus: data/raw/Law.pdf committed to the repo, or pulled from a DVC remote.
+    # Integration/e2e tests + evaluation + quality gate. Never falls back to synthetic data.
     runs-on: ubuntu-24.04
     needs: [lint-typecheck, unit-tests]
-    env:
-      HAS_DVC: ${{ secrets.DVC_REMOTE_URL != '' }}
+    outputs:
+      corpus: ${{ steps.corpus.outputs.source }}
     steps:
-      - name: Skip notice
-        if: env.HAS_DVC != 'true'
-        run: echo "::warning::DVC remote secrets not configured — real-corpus tests, evaluation and quality gate were NOT run."
       - uses: actions/checkout@v4
-        if: env.HAS_DVC == 'true'
+      - name: Locate the corpus
+        id: corpus
+        env:
+          DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
+        run: |
+          if [ -f data/raw/Law.pdf ]; then src=git
+          elif [ -n "$DVC_REMOTE_URL" ] && [ -f data/raw/Law.pdf.dvc ]; then src=dvc
+          else src=none
+            echo "::warning::No corpus (data/raw/Law.pdf not committed and no DVC remote secrets) — real-corpus tests, evaluation and quality gate were NOT run."
+          fi
+          echo "source=$src" >> "$GITHUB_OUTPUT"
       - uses: astral-sh/setup-uv@v5
-        if: env.HAS_DVC == 'true'
+        if: steps.corpus.outputs.source != 'none'
         with: {version: "${{ env.UV_VERSION }}"}
-      - if: env.HAS_DVC == 'true'
+      - if: steps.corpus.outputs.source != 'none'
         run: uv sync --frozen --extra dev --extra pipeline --extra mlops --python ${{ env.PYTHON_VERSION }}
-      - name: Pull versioned data
-        if: env.HAS_DVC == 'true'
+      - name: Pull the corpus from the DVC remote
+        if: steps.corpus.outputs.source == 'dvc'
         env:
           DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
           GDRIVE_CREDENTIALS_DATA: ${{ secrets.GDRIVE_CREDENTIALS_DATA }}
@@ -102,21 +111,25 @@ jobs:
             export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/gcs.json"
           fi
           uvx --from "dvc==3.67.1" --with "$plugin" dvc pull data/raw/Law.pdf.dvc
-          uv run dvc repro index   # rebuilds rows→articles→validate→chunks→index from the PDF; fails on validation errors
+      - name: Rebuild data + index from the PDF and check reproducibility
+        if: steps.corpus.outputs.source != 'none'
+        run: |
+          # validate also checks the PDF's sha256 against configs/source.yaml (wrong/edited PDF → failure)
+          uv run dvc repro index
           # DVC skips `validate` when articles.jsonl is byte-identical to the last validated one; run it anyway
           uv run dvc repro --force --single-item validate
-          git diff --exit-code dvc.lock || (echo "::error::dvc.lock changed: pipeline outputs are not reproducible from the committed state" && exit 1)
+          git diff --exit-code dvc.lock || (echo "::error::dvc.lock changed: pipeline outputs are not reproducible from the committed state (run 'dvc repro' on Linux/with LF line endings and commit dvc.lock)" && exit 1)
       - name: Integration + e2e tests (real corpus)
-        if: env.HAS_DVC == 'true'
+        if: steps.corpus.outputs.source != 'none'
         run: uv run pytest tests/integration tests/e2e --cov --cov-report=term --cov-fail-under=0
       - name: Offline evaluation
-        if: env.HAS_DVC == 'true'
+        if: steps.corpus.outputs.source != 'none'
         run: uv run python -m ecc_rag.evaluation.run_eval --mlflow-uri sqlite:///mlflow.db
       - name: Quality gate (fails on regression vs reports/baseline)
-        if: env.HAS_DVC == 'true'
+        if: steps.corpus.outputs.source != 'none'
         run: uv run python -m ecc_rag.evaluation.quality_gate
       - uses: actions/upload-artifact@v4
-        if: always() && env.HAS_DVC == 'true'
+        if: always() && steps.corpus.outputs.source != 'none'
         with:
           name: eval-reports
           path: |
@@ -126,7 +139,7 @@ jobs:
             reports/data_quality/
             mlflow.db
       - uses: actions/upload-artifact@v4
-        if: env.HAS_DVC == 'true'
+        if: steps.corpus.outputs.source != 'none'
         with:
           name: processed-data
           retention-days: 3
@@ -138,19 +151,19 @@ jobs:
     runs-on: ubuntu-24.04
     needs: [data-quality-gate]
     env:
-      HAS_DVC: ${{ secrets.DVC_REMOTE_URL != '' }}
+      HAS_CORPUS: ${{ needs.data-quality-gate.outputs.corpus != 'none' }}
     steps:
-      - if: env.HAS_DVC != 'true'
-        run: echo "::warning::No corpus available (DVC secrets missing) — image not built."
+      - if: env.HAS_CORPUS != 'true'
+        run: echo "::warning::No corpus available — image not built."
       - uses: actions/checkout@v4
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
       - uses: actions/download-artifact@v4
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
         with: {name: processed-data, path: data/processed}
       - uses: docker/setup-buildx-action@v3
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
       - name: Build image (tag = commit SHA)
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -162,7 +175,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Vulnerability scan (fails on fixable CRITICAL/HIGH)
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
         uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: ecc-rag-api:${{ github.sha }}
@@ -170,7 +183,7 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
       - name: Smoke test container (retrieval-only mode, no secrets)
-        if: env.HAS_DVC == 'true'
+        if: env.HAS_CORPUS == 'true'
         run: |
           docker run -d --name ecc --read-only --tmpfs /tmp -p 8000:8000 -e LLM_PROVIDER=none ecc-rag-api:${{ github.sha }}
           for i in $(seq 1 30); do curl -fsS localhost:8000/health && break; sleep 2; done

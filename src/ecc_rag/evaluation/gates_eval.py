@@ -209,7 +209,7 @@ def main() -> None:
     cal = None
     if args.calibrate:
         cal = calibrate(pipe, items)
-        (PROJECT_ROOT / "reports/threshold_calibration.json").write_text(json.dumps(cal, indent=2), encoding="utf-8")
+        (PROJECT_ROOT / "reports/threshold_calibration.json").write_text(json.dumps(cal, indent=2), encoding="utf-8", newline="\n")
         pipe.cfg["scope"].update({k: cal["best"][k] for k in ("min_tfidf_for_in_scope", "min_coverage_for_in_scope")})
         pipe.cfg["evidence"].update({k: cal["best"][k] for k in ("min_top_tfidf", "min_query_coverage")})
     rows = evaluate(pipe, items)
@@ -223,7 +223,7 @@ def main() -> None:
         "rows": rows,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    args.output.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     print(json.dumps({k: out[k] for k in ("thresholds", "dev", "test")}, ensure_ascii=False, indent=2))
 
 

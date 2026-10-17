@@ -252,7 +252,7 @@ def extract_articles(pdf_path: str | Path) -> list[dict]:
 def save_articles(articles: list[dict], output_path: str | Path) -> None:
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as f:
+    with output_path.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(articles, f, ensure_ascii=False, indent=2)
 
 

@@ -232,7 +232,7 @@ def main() -> None:
         )
     rows = extract_rows(args.input)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    with args.output.open("w", encoding="utf-8") as f:
+    with args.output.open("w", encoding="utf-8", newline="\n") as f:
         for r in rows:
             f.write(json.dumps(asdict(r), ensure_ascii=False) + "\n")
     logger.info("extracted %d rows from %s (sha256=%s)", len(rows), args.input, sha256_file(args.input))

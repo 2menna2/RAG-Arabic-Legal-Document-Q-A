@@ -5,7 +5,7 @@
 | Item | Value (only what can be verified) |
 |---|---|
 | Document | Egyptian Civil Code (Law No. 131 of 1948), bilingual table edition (English left, Arabic right), 170 pages |
-| File | `data/raw/Law.pdf` — DVC-tracked, **never committed to Git** |
+| File | `data/raw/Law.pdf` — committed to Git (owner decision, 2026-10-17); previously DVC-tracked |
 | Hashes | md5 `5086ef5f16f15d856278db943e58e948` · sha256 `2d6419fb262dab712f7bf5f6e31834bea74fbcf03b78ae081dd35d156915eebf` · 2,599,703 bytes |
 | Identity check | identical (md5) to the file referenced by the reference project's `data/raw/Law.pdf.dvc` |
 | Origin | provided by the project owner; the ITI × MLOps MENA handbook cites *sadanykhalifa.com — القانون المدني المصري* as the source of this bilingual PDF |
@@ -14,7 +14,7 @@
 | Effective date | original code in force from **15 October 1949** — from the promulgation law printed on page 1 ("ويعمل به ابتداء من ١٥ أكتوبر سنة ١٩٤٩"); per-article effective dates unknown → `effective_date = null` |
 | English column | unofficial translation of unknown authorship; used for cross-lingual retrieval only |
 | Repeals | only those stated in the document itself: Arts. 54–80 (p. 7, with the decrees cited by the source) and 389–417 (p. 53) → `legal_status = repealed_per_source` with verbatim evidence; all others `unverified` |
-| License / rights | unknown. Egyptian statutes are generally not protected as official texts, but the translation and the compilation may be. The PDF and the derived full-text JSONL are therefore kept out of Git and distributed only through a private DVC remote. **Confirm rights before any public deployment.** |
+| License / rights | unknown. Egyptian statutes are generally not protected as official texts, but the translation and the compilation may be. The pipeline originally kept the PDF out of Git for that reason; on 2026-10-17 the project owner chose to commit it to the (public) GitHub repository. Derived full-text data stays out of Git. **Rights are still unconfirmed** — make the repository private or remove the file if they cannot be confirmed. |
 
 Nothing in the corpus was hand-written: there are no manual text patches. Source defects are documented in
 `configs/known_source_issues.yaml` (SRC-001 … SRC-007) and surfaced as `quality_flags` per article.
@@ -28,11 +28,15 @@ quality_flags, content_hash` — enforced by `src/ecc_rag/data_pipeline/schema.p
 
 ## Getting the data
 
-1. **DVC remote (recommended):** `dvc remote add -d --local storage <url>` then `dvc pull`. A remote is not committed
-   because none was available; the mechanism was tested with a local-directory remote: push → fresh `git clone` →
-   `dvc pull` restored `Law.pdf` and all outputs with identical hashes.
-2. **From the PDF:** place it at `data/raw/Law.pdf`; `configs/source.yaml` holds the expected sha256 and
-   `validate.py --pdf` re-verifies it. Then `dvc repro`.
+1. **From the repository (current):** `data/raw/Law.pdf` is committed; `dvc repro index` rebuilds everything else.
+   `configs/source.yaml` holds the expected sha256 and `validate.py --pdf` re-verifies it.
+2. **DVC remote (optional):** to share the derived data/index instead of rebuilding, `dvc remote add -d --local
+   storage <url>` then `dvc push`/`dvc pull` (tested with a local-directory remote: push → fresh clone → pull restored
+   all outputs with identical hashes). If the PDF is ever removed from Git again, re-add it with `dvc add
+   data/raw/Law.pdf`; CI then pulls it from the remote (see docs/CI_CD.md).
+
+Line endings: `.gitattributes` forces LF and every writer uses `newline="\n"`, so outputs and `dvc.lock` are
+byte-identical on Windows and Linux (DVC hashes raw bytes).
 
 ## Evaluation data (`data/evaluation/golden_v1.yaml`)
 
