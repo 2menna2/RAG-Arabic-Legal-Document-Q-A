@@ -1192,7 +1192,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5,<8" },
     { name = "pyyaml", specifier = ">=6,<7" },
     { name = "qdrant-client", specifier = ">=1.12,<2" },
-    { name = "ragas", marker = "extra == 'ragas'", specifier = "==0.3.9" },
+    { name = "ragas", marker = "extra == 'ragas'", specifier = "==0.4.3" },
     { name = "rank-bm25", specifier = "==0.2.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6,<1" },
     { name = "scikit-learn", specifier = ">=1.5,<2" },
@@ -3863,13 +3863,12 @@ wheels = [
 
 [[package]]
 name = "ragas"
-version = "0.3.9"
+version = "0.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
     { name = "datasets" },
     { name = "diskcache" },
-    { name = "gitpython" },
     { name = "instructor" },
     { name = "langchain" },
     { name = "langchain-community" },
@@ -3889,9 +3888,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/cd/456c0a0de093636683cfe61c0db7865005f00f1a1d38d3c964c0b6e70c73/ragas-0.3.9.tar.gz", hash = "sha256:7807cfc3f01c0297ef99ab3e6a5f53e7cac0a73267d273273b17871437c55786", size = 43865644, upload-time = "2025-11-11T17:25:19.18Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/bc/3234517692ac0ffae1ec2ec940992e4057844c49ee6c51c07ce385bb98f1/ragas-0.4.3.tar.gz", hash = "sha256:1eb1f61dbc8613ad014fdb8d630cbe9a1caec1ea01664a106993cb756128c001", size = 44029626, upload-time = "2026-01-13T17:48:01.043Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/60/e7/4b76c1d5826481fe6bd0aaa4527e7a98a17164559c41b5fe0663a236a1dd/ragas-0.3.9-py3-none-any.whl", hash = "sha256:1be77af14c7101f26125cc025ff1026f49e2d564162471ae590c3d832527f9c5", size = 366710, upload-time = "2025-11-11T17:25:16.374Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/e0/1fecd22c93d3ed66453cbbdefd05528331af4d33b2b76a370d751231912c/ragas-0.4.3-py3-none-any.whl", hash = "sha256:ef1d75f674c294e9a6e7d8e9ad261b6bf4697dad1c9cbd1a756ba7a6b4849a38", size = 466452, upload-time = "2026-01-13T17:47:59.2Z" },
 ]
 
 [[package]]
