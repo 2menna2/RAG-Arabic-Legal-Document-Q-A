@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11, <3.14"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'win32'",
@@ -1213,7 +1213,7 @@ wheels = [
 
 [[package]]
 name = "fastapi"
-version = "0.143.3"
+version = "0.156.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "annotated-doc" },
@@ -1223,9 +1223,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/d5/b0aeb0b303650ac87b0411de4aaf3f901b06042dcc3fb00f30b97b7ff585/fastapi-0.143.3.tar.gz", hash = "sha256:b9ab567ee57afb4454004ce04c889f8f0160ac47946b99795887cd6e88484848", size = 469834, upload-time = "2026-10-16T14:14:13.31Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6c/93/6e785df7ec0bdbfef9d7bf1044bc7bfabd6d22641d147e8326a1f2ba210b/fastapi-0.156.8.tar.gz", hash = "sha256:cee65bba7890cd85264b3b06c7fdf88e84ca3510d00d4018cdbc2ce629e1ff22", size = 504768, upload-time = "2026-10-21T08:45:18.817Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/1a/03d246befcf307219bb2161c97d8c5d314f84125bf7dd245730a28589828/fastapi-0.143.3-py3-none-any.whl", hash = "sha256:75e8bd68e2f52f77d29b2879749c257d64de2d85282d25270caf2bfccce5efe5", size = 144849, upload-time = "2026-10-16T14:14:11.763Z" },
+    { url = "https://files.pythonhosted.org/packages/21/93/b87423a73fad5b3b1de4f14a680a2d2344c442d5a1f297a0eb413b7572a3/fastapi-0.156.8-py3-none-any.whl", hash = "sha256:d5f2e052a5f985fb0bbe1114527938c25fedbe198a8197faae71c3d38851b7c3", size = 147358, upload-time = "2026-10-21T08:45:17.278Z" },
 ]
 
 [[package]]
@@ -1513,7 +1513,7 @@ requests = [
 
 [[package]]
 name = "google-genai"
-version = "2.31.0"
+version = "2.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1527,9 +1527,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/69/6a3d3839ab56ec17d7923c8679b38955e286e0a9793df10ce6d13bc5f122/google_genai-2.31.0.tar.gz", hash = "sha256:71518537de2ba967a61960cba844691dca3dd4ff07726c01a6917d132213541e", size = 745679, upload-time = "2026-10-14T23:52:24.836Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/f9/89c95879bd58f176f82415c1a63a9dce528ea2b7a83a155412db5b1c783b/google_genai-2.32.0.tar.gz", hash = "sha256:9e8fb72f0a878291bc20b941d5d535e249f5729290565b7d49406827a0c30152", size = 750015, upload-time = "2026-10-21T00:38:45.526Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/64/1e9ab799830101ccbdcb67376a3f12b59e51f57643862999fd31af6938a1/google_genai-2.31.0-py3-none-any.whl", hash = "sha256:c87b9d495a24b09dedb29b852a201bea69ecd0b3f6c2561dc68f4055451b1b90", size = 1208245, upload-time = "2026-10-14T23:52:22.766Z" },
+    { url = "https://files.pythonhosted.org/packages/97/70/964baf520f36019ad4e4ce316e6dc943189f3b398654ff8277dadb764f6d/google_genai-2.32.0-py3-none-any.whl", hash = "sha256:cf71a629df18510cd837cacb4843b38a2db6834c69eb93963a0d8ee4d657b725", size = 1213907, upload-time = "2026-10-21T00:38:43.471Z" },
 ]
 
 [[package]]
@@ -2513,7 +2513,7 @@ wheels = [
 
 [[package]]
 name = "mlflow"
-version = "3.17.1"
+version = "3.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
@@ -2539,14 +2539,14 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "waitress", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6e/30/953491ffbd83c90aba4a72c8a68c03ea16a8b016050557094d059268bf7d/mlflow-3.17.1.tar.gz", hash = "sha256:b41225845f200968bfeb015c48ad9e57a02f3bf4cee246fb04a75325728c21d8", size = 11158262, upload-time = "2026-10-13T09:00:18.681Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/67/fb/1b576cbec9a23017529aac0e6c86653da7479c72fa7c070238bbcd8b50fe/mlflow-3.17.2.tar.gz", hash = "sha256:3fcdb58c683362763bf1cb124eea800b4e3253e16cb5e3adf5b5e562af1fdf2b", size = 11165270, upload-time = "2026-10-21T02:08:45.983Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a4/64/ee5ca7500b3f4ca187b7c0c2f080a029eed1df7f22b334391587979b23dc/mlflow-3.17.1-py3-none-any.whl", hash = "sha256:726bf7feac25dbdb5b3098bf20b86574393bb75468eef721902ec025e724752f", size = 12004276, upload-time = "2026-10-13T09:00:14.749Z" },
+    { url = "https://files.pythonhosted.org/packages/78/a6/d693e1b3d704d6728a9746cd065bbb58fe19c8558d62536e2d5accd00709/mlflow-3.17.2-py3-none-any.whl", hash = "sha256:4e44c03791beb518d8b0a40b0982d958c2634d902f46d67d7907c82107f21fac", size = 12009627, upload-time = "2026-10-21T02:08:42.779Z" },
 ]
 
 [[package]]
 name = "mlflow-skinny"
-version = "3.17.1"
+version = "3.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -2571,14 +2571,14 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c7/b3/a72208dd21b7b8345d3d15eafa8d5d2897d36e21420e22d290fad5775aa4/mlflow_skinny-3.17.1.tar.gz", hash = "sha256:c4587083811f638d9c2e6e8ab7caabbccc51ccc09de2c87a503913b32bbfd7bf", size = 3483742, upload-time = "2026-10-13T08:58:49.651Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/b0/efbc07a721df135c681dd9f29ecb44b42e9664125f82a41168bc38240ed8/mlflow_skinny-3.17.2.tar.gz", hash = "sha256:5f2a0812d019a8f517a58f1377922f75af4f42832be30c8f1441005b51288596", size = 3488534, upload-time = "2026-10-21T02:07:10.993Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/54/d0e5e2588013d7655f9cfb3d17fff4760c22652ce628b57ae4ac0fa913e6/mlflow_skinny-3.17.1-py3-none-any.whl", hash = "sha256:7374adf971e06f77f861dd8196c50e344557728b643192c665f0603c19a8d146", size = 4105632, upload-time = "2026-10-13T08:58:47.785Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/57/f1071a3f1aa2898d4fec13c359405c996a8f1c6786ebfff062144504076a/mlflow_skinny-3.17.2-py3-none-any.whl", hash = "sha256:31be9190494212ccd94774170fd06f6fe04d209aae3923eefd16f9bf7830d63c", size = 4110991, upload-time = "2026-10-21T02:07:08.589Z" },
 ]
 
 [[package]]
 name = "mlflow-tracing"
-version = "3.17.1"
+version = "3.17.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
@@ -2590,9 +2590,9 @@ dependencies = [
     { name = "protobuf" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4c/da/e226d475789bbb8caf68aafa3cbf2b715e5f6eda00f7f659b7eda6fba1ef/mlflow_tracing-3.17.1.tar.gz", hash = "sha256:c154492045b5f3544ab07fd9ab9d7c07febfb53065d43f1a07f33a31c46b3505", size = 1688196, upload-time = "2026-10-13T08:59:23.98Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/af/81/bf76610e755643d454fe1eb52fd6aae99d2e7d472a4a4cd119fa11a7a653/mlflow_tracing-3.17.2.tar.gz", hash = "sha256:35da9f6cc450feae7173941d0d119391f6fe3a41973c0a28ae4a021e6e285c99", size = 1688723, upload-time = "2026-10-21T02:07:48.333Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ce/19/2ba5a327efa9a45ea46c927103a7c57b24441375d8b3435f6b27d187ac91/mlflow_tracing-3.17.1-py3-none-any.whl", hash = "sha256:4f6405e48efdf9330101aa059383103e1e15559664ec792290b9b95556f9e851", size = 1981200, upload-time = "2026-10-13T08:59:22.314Z" },
+    { url = "https://files.pythonhosted.org/packages/db/6b/ebac062a2c6619c16feaafba349b07c1f03ce6b0b0f6d3af79d936a17380/mlflow_tracing-3.17.2-py3-none-any.whl", hash = "sha256:1502aa892144cbe93b0c2a706b9564011be92903bbb343d19038dcd322ae5e7c", size = 1981686, upload-time = "2026-10-21T02:07:46.027Z" },
 ]
 
 [[package]]
@@ -3617,7 +3617,7 @@ wheels = [
 
 [[package]]
 name = "pydantic-settings"
-version = "2.16.0"
+version = "2.16.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
@@ -3625,9 +3625,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "typing-inspection" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/3b/a5d2294799b53b448319978cfb5bd139d5a9d45e862af91661614f14c922/pydantic_settings-2.16.0.tar.gz", hash = "sha256:5b6c578049ede4db0e2ef3b4eaa4ad4069cfa9211f83fb38df899dfade50a614", size = 301031, upload-time = "2026-10-14T12:44:09.998Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/05/ca/7817b4bf0c4b15c6a6ab8cdf4cb96c268335a8ca2f525de93b6ebe4c7d28/pydantic_settings-2.16.1.tar.gz", hash = "sha256:aff602a1886338c2df3d1e958e2193a8dc33cec75b91f202e83fd98484b4b0da", size = 303436, upload-time = "2026-10-20T11:37:19.024Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/53/f4/b987bf8c51e5b19a95fa66d1ee596074141e085d9c2ddf97920803c7029b/pydantic_settings-2.16.0-py3-none-any.whl", hash = "sha256:7e73acf7f61936a15e5a3b6eedaea29f133357faf7272f2607ba479b049dd7f2", size = 80364, upload-time = "2026-10-14T12:44:08.233Z" },
+    { url = "https://files.pythonhosted.org/packages/3c/74/fdf926afe145d8629c4b2ff57f4ea1d64ed7abc4d84d97463b2517a2547e/pydantic_settings-2.16.1-py3-none-any.whl", hash = "sha256:30f5313340da4e8f1b440d1910b92a5bc3ccbb6b4ba70ec2b8395bc921f418f5", size = 80771, upload-time = "2026-10-20T11:37:17.298Z" },
 ]
 
 [[package]]
